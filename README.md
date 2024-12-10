@@ -6,6 +6,8 @@ Welcome to the Godot SWE Ocean 2D Simulation project! This repository contains a
 https://matthias-research.github.io/pages/publications/hfFluid.pdf)
 * Efficient Computation: Utilizes compute shaders for high-performance calculations, ensuring smooth and responsive simulations.
 
+https://github.com/user-attachments/assets/fd18a2d6-e244-426e-8852-0d648e2dfedb
+
 ## Getting Started
 Follow these steps to get the project up and running on your local machine:
 1. Clone the Repository.
