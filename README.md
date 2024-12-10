@@ -15,4 +15,4 @@ Follow these steps to get the project up and running on your local machine:
    - Press the "Play" button in Godot to start the simulation.
 
 ## License
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
