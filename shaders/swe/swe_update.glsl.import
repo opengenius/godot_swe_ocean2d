@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://cvq3nf4ww7mbs"
+path="res://.godot/imported/swe_update.glsl-6aeca40807918a7cb96971e02aff8114.res"
+
+[deps]
+
+source_file="res://shaders/swe/swe_update.glsl"
+dest_files=["res://.godot/imported/swe_update.glsl-6aeca40807918a7cb96971e02aff8114.res"]
+
+[params]
+

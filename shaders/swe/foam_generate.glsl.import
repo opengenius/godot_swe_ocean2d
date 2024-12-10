@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://chexnbb7474hb"
+path="res://.godot/imported/foam_generate.glsl-eb1b002ba58cb5df47092c698b296bd5.res"
+
+[deps]
+
+source_file="res://shaders/swe/foam_generate.glsl"
+dest_files=["res://.godot/imported/foam_generate.glsl-eb1b002ba58cb5df47092c698b296bd5.res"]
+
+[params]
+

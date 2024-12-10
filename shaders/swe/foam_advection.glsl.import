@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bqfo14e4eoxqb"
+path="res://.godot/imported/foam_advection.glsl-18f41b83bff207ffa065eb45166a7610.res"
+
+[deps]
+
+source_file="res://shaders/swe/foam_advection.glsl"
+dest_files=["res://.godot/imported/foam_advection.glsl-18f41b83bff207ffa065eb45166a7610.res"]
+
+[params]
+

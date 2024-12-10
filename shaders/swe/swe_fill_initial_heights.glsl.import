@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bk8jgm8nqy01m"
+path="res://.godot/imported/swe_fill_initial_heights.glsl-179afe00a2736cb3127a991678accfd6.res"
+
+[deps]
+
+source_file="res://shaders/swe/swe_fill_initial_heights.glsl"
+dest_files=["res://.godot/imported/swe_fill_initial_heights.glsl-179afe00a2736cb3127a991678accfd6.res"]
+
+[params]
+

@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dn0jb2o5818b2"
+path="res://.godot/imported/swe_local_fill_with_waves.glsl-e517f17d4090f7cf3bb5cce593c811d6.res"
+
+[deps]
+
+source_file="res://shaders/swe/swe_local_fill_with_waves.glsl"
+dest_files=["res://.godot/imported/swe_local_fill_with_waves.glsl-e517f17d4090f7cf3bb5cce593c811d6.res"]
+
+[params]
+
