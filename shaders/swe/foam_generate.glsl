@@ -34,7 +34,7 @@ void main() {
     vec2 v11 = imageLoad(velocity_map, xy).rg;
 	vec2 v01 = imageLoad(velocity_map, clamp(xy + ivec2(-1, 0), zero, size_max)).rg;
 	vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), zero, size_max)).rg;
-	float divergence = (v11.x - v01.x + v11.y - v10.y) * 10.0;// / params.dxdy;
+	float divergence = (v11.x - v01.x + v11.y - v10.y) * 2.0 / params.dxdy;
 
     // diffusion
     const float diffusionRate = 0.2;

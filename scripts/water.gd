@@ -9,6 +9,7 @@ func _ready():
 	#self.texture = swe.texture
 	self.material.set_shader_parameter("current_pos2d_scale", Vector4(0.0, 0.0, 1.0, 0.0))
 	self.material.set_shader_parameter("velocity_map", swe.vel_texture)
+	self.material.set_shader_parameter("foam_mask_map", swe.foam_texture)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.

@@ -20,7 +20,7 @@ vec2 sampleVelocity(ivec2 xy) {
 }
 
 float advectFoam(ivec2 xy, vec2 velocity) {
-    ivec2 coordBack = ivec2(vec2(xy) + vec2(0.5) - velocity * params.dt / params.dxdy * 2.0); // todo: velocity factor
+    ivec2 coordBack = ivec2(vec2(xy) + vec2(0.5) - velocity * params.dt / params.dxdy); // todo: velocity factor
     return imageLoad(intermediateBuffer, coordBack).r;
 }
 
@@ -40,7 +40,7 @@ void main() {
     // Advection
     float advectedFoam = advectFoam(xy, velocity);
     // just copy
-    //float advectedFoam = imageLoad(intermediateBuffer, xy).r;
+    // float advectedFoam = imageLoad(intermediateBuffer, xy).r;
 
     // Output the result
     imageStore(outputBuffer, xy, vec4(advectedFoam));

@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=4 uid="uid://dpci4hbq2jh6c"]
+[gd_scene load_steps=30 format=4 uid="uid://dpci4hbq2jh6c"]
 
 [ext_resource type="Texture2D" uid="uid://iva1ijk4af1m" path="res://textures/sand.png" id="1_52lr2"]
 [ext_resource type="Script" path="res://scripts/camera_2d.gd" id="1_md81a"]
@@ -9,17 +9,20 @@
 [ext_resource type="Texture2D" uid="uid://b8pwfmsotcgi5" path="res://textures/foam.png" id="5_lxf47"]
 [ext_resource type="Texture2D" uid="uid://bmw2a7qs3qx8d" path="res://textures/normals2.png" id="6_adbk6"]
 [ext_resource type="Shader" path="res://shaders/swe_visualisation.gdshader" id="8_0sjq8"]
+[ext_resource type="Texture2D" uid="uid://bnhjx5f4vc0fp" path="res://textures/foam_noise_tex.tres" id="8_lkj4c"]
 [ext_resource type="Script" path="res://scripts/swe/swe.gd" id="8_m18n5"]
 [ext_resource type="Script" path="res://scripts/swe_visualisation.gd" id="9_3qqd1"]
 [ext_resource type="Script" path="res://scripts/water.gd" id="9_lvgky"]
-[ext_resource type="Shader" path="res://shaders/swe_foam.gdshader" id="11_fesih"]
 [ext_resource type="Script" path="res://scripts/swe/swe_local.gd" id="11_v6sda"]
 [ext_resource type="Shader" path="res://shaders/grid_debug.gdshader" id="12_4fdi5"]
-[ext_resource type="Script" path="res://scripts/swe_foam_generator.gd" id="12_cvq3h"]
+[ext_resource type="Script" path="res://scripts/swe_foam_rect.gd" id="12_lrs4e"]
 [ext_resource type="Script" path="res://scripts/water_local.gd" id="12_myqi2"]
-[ext_resource type="Shader" path="res://shaders/foam_decay.gdshader" id="13_gqxjf"]
 [ext_resource type="Script" path="res://scripts/swe_local_visualisation.gd" id="21_kgi7a"]
 [ext_resource type="Script" path="res://scripts/swe_local_foam_rect.gd" id="25_qkwgx"]
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_kfyoh"]
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_fyuuq"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_etcfx"]
 resource_local_to_scene = true
@@ -32,23 +35,20 @@ shader_parameter/normals1_map = ExtResource("5_cbk6m")
 shader_parameter/normals2_map = ExtResource("6_adbk6")
 shader_parameter/caustics_map = ExtResource("4_wy46u")
 shader_parameter/foam_map = ExtResource("5_lxf47")
+shader_parameter/foam_mask_map = SubResource("Texture2DRD_kfyoh")
+shader_parameter/velocity_map = SubResource("Texture2DRD_fyuuq")
+shader_parameter/noise_map = ExtResource("8_lkj4c")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kkyll"]
 shader = ExtResource("12_4fdi5")
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_22aqx"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_44qya"]
+shader = ExtResource("8_0sjq8")
+shader_parameter/dxdy = null
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_f0vig"]
-shader = ExtResource("11_fesih")
-shader_parameter/velocity_map = SubResource("Texture2DRD_22aqx")
+[sub_resource type="Texture2DRD" id="Texture2DRD_dar5t"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_lw2a2"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_px27s"]
-shader = ExtResource("13_gqxjf")
-
-[sub_resource type="ViewportTexture" id="ViewportTexture_x5bxb"]
-viewport_path = NodePath("FoamVP")
+[sub_resource type="Texture2DRD" id="Texture2DRD_r7sfv"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sdbx1"]
 resource_local_to_scene = true
@@ -61,20 +61,16 @@ shader_parameter/normals1_map = ExtResource("5_cbk6m")
 shader_parameter/normals2_map = ExtResource("6_adbk6")
 shader_parameter/caustics_map = ExtResource("4_wy46u")
 shader_parameter/foam_map = ExtResource("5_lxf47")
-shader_parameter/foam_mask_map = SubResource("ViewportTexture_x5bxb")
-shader_parameter/velocity_map = SubResource("Texture2DRD_22aqx")
+shader_parameter/foam_mask_map = SubResource("Texture2DRD_dar5t")
+shader_parameter/velocity_map = SubResource("Texture2DRD_r7sfv")
+shader_parameter/noise_map = ExtResource("8_lkj4c")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pmb2w"]
 shader = ExtResource("8_0sjq8")
-shader_parameter/dxdy = null
-shader_parameter/velocity_map = SubResource("Texture2DRD_22aqx")
+shader_parameter/dxdy = 1.084
+shader_parameter/velocity_map = SubResource("Texture2DRD_r7sfv")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_a4anj"]
-viewport_path = NodePath("FoamVP")
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_44qya"]
-shader = ExtResource("8_0sjq8")
-shader_parameter/dxdy = null
+[sub_resource type="Texture2DRD" id="Texture2DRD_i26vh"]
 
 [node name="root" type="Node2D"]
 
@@ -116,63 +112,15 @@ text = "Local SWE"
 [node name="SWELVisSprite2D" type="Sprite2D" parent="."]
 visible = false
 material = SubResource("ShaderMaterial_kkyll")
+scale = Vector2(3.612, 3.612)
 texture = ExtResource("4_wy46u")
 centered = false
 region_enabled = true
 region_rect = Rect2(0, 0, 512, 512)
 
-[node name="SWE" type="Node" parent="."]
-script = ExtResource("8_m18n5")
-texture_size = Vector2i(1024, 1024)
-map_height_texture = ExtResource("4_5ogq6")
-
-[node name="FoamVP" type="SubViewport" parent="."]
-disable_3d = true
-size = Vector2i(1024, 1024)
-render_target_clear_mode = 1
-
-[node name="GenerationSprite" type="Sprite2D" parent="FoamVP" node_paths=PackedStringArray("swe")]
-material = SubResource("ShaderMaterial_f0vig")
-texture = SubResource("Texture2DRD_lw2a2")
-centered = false
-script = ExtResource("12_cvq3h")
-swe = NodePath("../../SWE")
-
-[node name="DecayColorRect" type="ColorRect" parent="FoamVP"]
-material = SubResource("ShaderMaterial_px27s")
-offset_right = 1024.0
-offset_bottom = 1024.0
-
-[node name="Water" type="Sprite2D" parent="." node_paths=PackedStringArray("swe")]
-texture_repeat = 2
-material = SubResource("ShaderMaterial_sdbx1")
-position = Vector2(-1900, 0)
-scale = Vector2(0.903, 0.903)
-texture = ExtResource("1_52lr2")
-centered = false
-region_rect = Rect2(0, 0, 950, 1850)
-script = ExtResource("9_lvgky")
-swe = NodePath("../SWE")
-
-[node name="Label" type="Label" parent="Water"]
-offset_right = 40.0
-offset_bottom = 23.0
-text = "Global SWE"
-
-[node name="SWEVisSprite2D" type="Sprite2D" parent="." node_paths=PackedStringArray("swe")]
-visible = false
-material = SubResource("ShaderMaterial_pmb2w")
-position = Vector2(-1900, 0)
-scale = Vector2(1.805, 1.805)
-texture = SubResource("Texture2DRD_lw2a2")
-centered = false
-region_rect = Rect2(0, 0, 512, 512)
-script = ExtResource("9_3qqd1")
-swe = NodePath("../SWE")
-
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="TextureRect" type="TextureRect" parent="CanvasLayer"]
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("swe")]
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
@@ -181,8 +129,9 @@ offset_right = 1024.0
 offset_bottom = 376.0
 grow_vertical = 0
 scale = Vector2(0.2, 0.2)
-texture = SubResource("ViewportTexture_a4anj")
 stretch_mode = 2
+script = ExtResource("12_lrs4e")
+swe = NodePath("../../SWE")
 
 [node name="LabelGlobal" type="Label" parent="CanvasLayer"]
 offset_right = 74.0
@@ -199,8 +148,8 @@ color = Color(0, 0, 0, 1)
 [node name="SWELocalVisRect" type="TextureRect" parent="CanvasLayer" node_paths=PackedStringArray("swe")]
 material = SubResource("ShaderMaterial_44qya")
 offset_top = 210.0
-offset_right = 40.0
-offset_bottom = 250.0
+offset_right = 205.0
+offset_bottom = 415.0
 scale = Vector2(0.4, 0.4)
 stretch_mode = 2
 script = ExtResource("21_kgi7a")
@@ -225,3 +174,35 @@ offset_top = 420.0
 offset_right = 74.0
 offset_bottom = 454.0
 text = "Local (foam)"
+
+[node name="SWE" type="Node" parent="."]
+script = ExtResource("8_m18n5")
+texture_size = Vector2i(1024, 1024)
+map_height_texture = ExtResource("4_5ogq6")
+
+[node name="Water" type="Sprite2D" parent="." node_paths=PackedStringArray("swe")]
+texture_repeat = 2
+material = SubResource("ShaderMaterial_sdbx1")
+position = Vector2(-1900, 0)
+scale = Vector2(0.903, 0.903)
+texture = ExtResource("1_52lr2")
+centered = false
+region_rect = Rect2(0, 0, 950, 1850)
+script = ExtResource("9_lvgky")
+swe = NodePath("../SWE")
+
+[node name="Label" type="Label" parent="Water"]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Global SWE"
+
+[node name="SWEVisSprite2D" type="Sprite2D" parent="." node_paths=PackedStringArray("swe")]
+visible = false
+material = SubResource("ShaderMaterial_pmb2w")
+position = Vector2(-1900, 0)
+scale = Vector2(1.805, 1.805)
+texture = SubResource("Texture2DRD_i26vh")
+centered = false
+region_rect = Rect2(0, 0, 512, 512)
+script = ExtResource("9_3qqd1")
+swe = NodePath("../SWE")

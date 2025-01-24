@@ -51,7 +51,9 @@ void main() {
     float dh_dt = (h_ip2_j * v_uv.x - h_im2_j * u_im1j) / params.dxdy +
                 (h_i_jp2 * v_uv.y - h_i_jm2 * v_ijm1) / params.dxdy;
 
-    float new_h = max(0.0f, h_ij - dh_dt * params.dt);
+    const float max_dt = 0.033f; // 30 fps
+    float dt_clamped = min(max_dt, params.dt);
+    float new_h = max(0.0f, h_ij - dh_dt * dt_clamped);
 
 	vec4 result = vec4(new_h, new_h, new_h, 1.0);
 

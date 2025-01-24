@@ -70,6 +70,30 @@ vec3 waveNormal_h(vec2 pos, float time) {
 	return normal_h;
 }
 
+vec2 previous_image_bilinear(vec2 uv) {
+	ivec2 texSize = ivec2(params.texture_size);
+
+    vec2 coord = uv * vec2(texSize) - 0.5;
+    ivec2 baseCoord = ivec2(floor(coord));
+    vec2 fracCoord = coord - vec2(baseCoord);
+
+    baseCoord = clamp(baseCoord, ivec2(0), texSize - ivec2(1));
+    ivec2 neighborCoord1 = clamp(baseCoord + ivec2(1, 0), ivec2(0), texSize - ivec2(1));
+    ivec2 neighborCoord2 = clamp(baseCoord + ivec2(0, 1), ivec2(0), texSize - ivec2(1));
+    ivec2 neighborCoord3 = clamp(baseCoord + ivec2(1, 1), ivec2(0), texSize - ivec2(1));
+
+    vec2 c00 = imageLoad(previous_image, baseCoord).rg;
+    vec2 c10 = imageLoad(previous_image, neighborCoord1).rg;
+    vec2 c01 = imageLoad(previous_image, neighborCoord2).rg;
+    vec2 c11 = imageLoad(previous_image, neighborCoord3).rg;
+
+    return mix(
+        mix(c00, c10, fracCoord.x),
+        mix(c01, c11, fracCoord.x),
+        fracCoord.y
+    );
+}
+
 void main() {
 	const ivec2 tl = ivec2(0, 0);
 
@@ -88,7 +112,7 @@ void main() {
 
     // Calculate UV coordinates in the previous image space
     vec2 uv_previous = uv * params.prev_pos2d_scale.z + params.prev_pos2d_scale.xy;
-	ivec2 xy_prev = ivec2(uv_previous * params.texture_size - vec2(0.5));
+	ivec2 xy_prev = ivec2(uv_previous * params.texture_size);
 
 	uv = uv * params.pos2d_scale.z + params.pos2d_scale.xy;
     float height = texture(height_map, uv).r;
@@ -99,7 +123,8 @@ void main() {
 	if (xy_prev.x < 0 || xy_prev.y < 0 || xy_prev.x > size.x || xy_prev.y > size.y) {
 		h_ij = water_base_level - height;
 	} else {
-		h_ij = imageLoad(previous_image, xy_prev).r;
+		h_ij = previous_image_bilinear(uv_previous).r;
+		// h_ij = imageLoad(previous_image, xy_prev).r;
 	}
 
     if (height < 0.5) {

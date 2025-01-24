@@ -24,10 +24,39 @@ const float max_vel = dxdy / dt * 0.5f;
 const float drag_shore_height_threshold = 0.1f;
 const float drag_factor = 0.05f;
 const ivec2 tl = ivec2(0, 0);
+const float max_dt = 0.033f; // 30 fps
 
 vec2 global_uv(ivec2 xy) {
     vec2 uv = (vec2(xy) + 0.5) / params.texture_size;
     return uv * params.pos2d_scale.z + params.pos2d_scale.xy;
+}
+
+/**
+|_0_|_1_|
+|0|0|1|1| nearest
+|0|0.25|0.75|1| linear
+*/
+
+vec2 bilinearInterpolation(vec2 uv, ivec2 texSize) {
+    vec2 coord = uv * vec2(texSize) - 0.5;
+    ivec2 baseCoord = ivec2(floor(coord));
+    vec2 fracCoord = coord - vec2(baseCoord);
+
+    baseCoord = clamp(baseCoord, ivec2(0), texSize - ivec2(1));
+    ivec2 neighborCoord1 = clamp(baseCoord + ivec2(1, 0), ivec2(0), texSize - ivec2(1));
+    ivec2 neighborCoord2 = clamp(baseCoord + ivec2(0, 1), ivec2(0), texSize - ivec2(1));
+    ivec2 neighborCoord3 = clamp(baseCoord + ivec2(1, 1), ivec2(0), texSize - ivec2(1));
+
+    vec2 c00 = imageLoad(velocity_image, baseCoord).rg;
+    vec2 c10 = imageLoad(velocity_image, neighborCoord1).rg;
+    vec2 c01 = imageLoad(velocity_image, neighborCoord2).rg;
+    vec2 c11 = imageLoad(velocity_image, neighborCoord3).rg;
+
+    return mix(
+        mix(c00, c10, fracCoord.x),
+        mix(c01, c11, fracCoord.x),
+        fracCoord.y
+    );
 }
 
 void main() {
@@ -58,25 +87,25 @@ void main() {
 
     // Calculate UV coordinates in the previous image space
     vec2 uv_previous = uv * params.prev_pos2d_scale.z + params.prev_pos2d_scale.xy;
-	ivec2 xy_prev = ivec2(uv_previous * params.texture_size - vec2(0.5));
-    vec2 v_uv = imageLoad(velocity_image, clamp(xy_prev, tl, size)).rg;
-
-    if (
-            // params.prev_pos2d_scale.x > 0.0 || params.prev_pos2d_scale.y > 0.0 || 
-            abs(params.prev_pos2d_scale.z - 1.0) > EPS ) {
-        // v_uv = vec2(0.0);
+	ivec2 xy_prev = ivec2(uv_previous * params.texture_size);
+    vec2 v_uv = vec2(0.0);
+    if (xy_prev.x >= 0 && xy_prev.y >= 0 && xy_prev.x < size.x && xy_prev.y < size.y) {
+        v_uv = bilinearInterpolation(uv_previous, ivec2(params.texture_size)).rg;
+        //v_uv = imageLoad(velocity_image, xy_prev).rg;
     }
 
     // enable drag force on the shores
     // float drag_koef = h_ij < drag_shore_height_threshold ? drag_factor : 0.0f;
     float drag_koef = 0.0f;
+    float dt_clamped = min(max_dt, params.dt);
+    //const float max_vel = 100.0f;//params.dxdy / dt * 0.5f;
 
     if ((n_i1j < (H_ij + EPS) && h_ij < EPS) ||
         n_ij < (H_i1j + EPS) && h_i1j < EPS) {
         v_uv.x = 0.0f;
     } else {
         float dh_dx = (n_i1j - n_ij) / params.dxdy;
-        float new_u = v_uv.x - params.dt * g * dh_dx - drag_koef * v_uv.x;
+        float new_u = v_uv.x - dt_clamped * g * dh_dx - drag_koef * v_uv.x;
         v_uv.x = max(-max_vel, min(new_u, max_vel));
     }
 
@@ -85,7 +114,7 @@ void main() {
         v_uv.y = 0.0f;
     } else {
         float dh_dy = (n_ij1 - n_ij) / params.dxdy;
-        float new_v = v_uv.y - params.dt * g * dh_dy - drag_koef * v_uv.y;
+        float new_v = v_uv.y - dt_clamped * g * dh_dy - drag_koef * v_uv.y;
         v_uv.y = max(-max_vel, min(new_v, max_vel));
     }
 

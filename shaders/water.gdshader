@@ -14,6 +14,7 @@ uniform sampler2D caustics_map: filter_linear_mipmap, repeat_enable;
 uniform sampler2D foam_map: filter_linear_mipmap, repeat_enable;
 uniform sampler2D foam_mask_map: filter_linear;
 uniform sampler2D velocity_map: filter_linear;
+uniform sampler2D noise_map: repeat_enable;
 
 const int MAX_Waves = 5;
 const int numWaves = 3;
@@ -244,20 +245,22 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 
 	//float foam_factor = clamp((0.5 - full_height) * 1.0, 0, 1) *
 			//clamp(wave_n_h.w * 100.0, 0, 1) * 2.0 * foam_mask;
+	//foam_mask = 1.0;
 	float foam_factor = clamp((0.5 - full_height) * 1.0, 0, 1) * foam_mask;
 	foam_factor *= foam_factor;
 	//float foam_factor = foam_mask;
 	//float foam = texture(foam_map, uv_scaled * 10.0 + wave_n_h.xy * 1.0 + vec2(1.0, 1.0)
 			//* wave_direction[0].xy * timeScaled * 0.2).r;
 
-	float phase0 = fract(timeScaled * 0.5f + 0.5f);
-    float phase1 = fract(timeScaled * 0.5f + 1.0f);
+	float offset = texture(noise_map, uv_scaled).r;
+	float phase0 = fract(offset + timeScaled * 0.5f + 0.5f);
+    float phase1 = fract(offset + timeScaled * 0.5f + 1.0f);
 	float flowLerp = abs((0.5f - phase0) / 0.5f);
 
 	const float vel_f = 0.08;
-
-	float foam0 = texture(foam_map, (uv_scaled + velocity * phase0 * vel_f)* 5.0).r;
-	float foam1 = texture(foam_map, (uv_scaled + velocity * phase1 * vel_f)* 5.0 + vec2(0.5)).r;
+	const float foam_scale = 5.0;
+	float foam0 = texture(foam_map, (uv_scaled + velocity * phase0 * vel_f)* foam_scale).r;
+	float foam1 = texture(foam_map, (uv_scaled + velocity * phase1 * vel_f)* foam_scale + vec2(0.5)).r;
 	float foam = mix(foam0, foam1, flowLerp) * 2.0;// * 2.8;
 	//return vec4(foam * foam_factor);
 	//return vec4(foam);
@@ -273,7 +276,7 @@ void fragment() {
 
 	vec4 color = texture(height_map, UV);
 	//COLOR = color;
-	
+
 	//COLOR = vec4(UV, 0.0, 1.0);
 	//return;
 
@@ -284,7 +287,7 @@ void fragment() {
     } else {
         // draw water
 		vec4 colorGround = texture(TEXTURE, UV * 4.0);
-		
+
 		vec2 local_uv = (UV  - current_pos2d_scale.xy) / current_pos2d_scale.z;
 		float foam_mask = min(1.0, texture(foam_mask_map, local_uv).r);
 		//COLOR = vec4(foam_mask);
