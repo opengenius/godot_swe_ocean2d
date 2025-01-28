@@ -246,22 +246,23 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	//float foam_factor = clamp((0.5 - full_height) * 1.0, 0, 1) *
 			//clamp(wave_n_h.w * 100.0, 0, 1) * 2.0 * foam_mask;
 	//foam_mask = 1.0;
-	float foam_factor = clamp((0.5 - full_height) * 1.0, 0, 1) * foam_mask;
-	foam_factor *= foam_factor;
-	//float foam_factor = foam_mask;
+	//float foam_factor = clamp((0.5 - full_height) * 1.0, 0, 1) * foam_mask;
+	//foam_factor *= foam_factor;
+	float foam_factor = foam_mask;
 	//float foam = texture(foam_map, uv_scaled * 10.0 + wave_n_h.xy * 1.0 + vec2(1.0, 1.0)
 			//* wave_direction[0].xy * timeScaled * 0.2).r;
 
-	float offset = texture(noise_map, uv_scaled).r;
+	vec2 foam_uv = uv_scaled + wave_n_h.xy * 0.25;
+	float offset = texture(noise_map, foam_uv).r;
 	float phase0 = fract(offset + timeScaled * 0.5f + 0.5f);
     float phase1 = fract(offset + timeScaled * 0.5f + 1.0f);
 	float flowLerp = abs((0.5f - phase0) / 0.5f);
 
 	const float vel_f = 0.08;
 	const float foam_scale = 5.0;
-	float foam0 = texture(foam_map, (uv_scaled + velocity * phase0 * vel_f)* foam_scale).r;
-	float foam1 = texture(foam_map, (uv_scaled + velocity * phase1 * vel_f)* foam_scale + vec2(0.5)).r;
-	float foam = mix(foam0, foam1, flowLerp) * 2.0;// * 2.8;
+	float foam0 = texture(foam_map, (foam_uv + velocity * phase0 * vel_f)* foam_scale).r;
+	float foam1 = texture(foam_map, (foam_uv + velocity * phase1 * vel_f)* foam_scale + vec2(0.5)).r;
+	float foam = mix(foam0, foam1, flowLerp);
 	//return vec4(foam * foam_factor);
 	//return vec4(foam);
 

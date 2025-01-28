@@ -34,7 +34,7 @@ void main() {
     vec2 v11 = imageLoad(velocity_map, xy).rg;
 	vec2 v01 = imageLoad(velocity_map, clamp(xy + ivec2(-1, 0), zero, size_max)).rg;
 	vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), zero, size_max)).rg;
-	float divergence = (v11.x - v01.x + v11.y - v10.y) * 2.0 / params.dxdy;
+	float divergence = (v11.x - v01.x + v11.y - v10.y) * 1.0 / params.dxdy;
 
     // diffusion
     const float diffusionRate = 0.2;
@@ -50,7 +50,7 @@ void main() {
     float foam_value = clamp(max(diffused, abs(divergence) * 1.0), 0.0, 20.0);
 
     // Dissipation
-    const float dissipationRate = 0.7;
+    const float dissipationRate = 0.9;
     foam_value *= clamp(1.0 - dissipationRate * params.dt, 0.0, 1.0);
 
     // Write the foam value to the foam map

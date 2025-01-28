@@ -5,11 +5,12 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(r32f, set = 0, binding = 0) uniform restrict readonly image2D current_image;
 layout(set = 1, binding = 0) uniform sampler2D height_map;
-layout(rg32f, set = 2, binding = 0) uniform restrict image2D velocity_image;
+layout(rg32f, set = 2, binding = 0) uniform restrict readonly image2D velocity_image;
+layout(rg32f, set = 3, binding = 0) uniform restrict writeonly image2D out_velocity_map;
 
 layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
-	float damp;
+	float dxdy;
 	float dt;
 } params;
 
@@ -22,6 +23,7 @@ const float max_vel = dxdy / dt * 0.5f;
 const float drag_shore_height_threshold = 0.1f;
 const float drag_factor = 0.05f;
 const ivec2 tl = ivec2(0, 0);
+const float max_dt = 0.033f; // 30 fps
 
 void main() {
 	ivec2 size = ivec2(params.texture_size.x - 1, params.texture_size.y - 1);
@@ -47,7 +49,7 @@ void main() {
 
     vec2 v_uv = imageLoad(velocity_image, xy).rg;
 
-    float ldt = min(dt, params.dt);
+    float ldt = min(max_dt, params.dt);
 
     // enable drag force on the shores
     // float drag_koef = h_ij < drag_shore_height_threshold ? drag_factor : 0.0f;
@@ -57,7 +59,7 @@ void main() {
         n_ij < (H_i1j + EPS) && h_i1j < EPS) {
         v_uv.x = 0.0f;
     } else {
-        float dh_dx = (n_i1j - n_ij) / dxdy;
+        float dh_dx = (n_i1j - n_ij) / params.dxdy;
         float new_u = v_uv.x - ldt * g * dh_dx - drag_koef * v_uv.x;
         v_uv.x = max(-max_vel, min(new_u, max_vel));
     }
@@ -66,10 +68,10 @@ void main() {
         n_ij < (H_ij1 + EPS) && h_ij1 < EPS) {
         v_uv.y = 0.0f;
     } else {
-        float dh_dy = (n_ij1 - n_ij) / dxdy;
+        float dh_dy = (n_ij1 - n_ij) / params.dxdy;
         float new_v = v_uv.y - ldt * g * dh_dy - drag_koef * v_uv.y;
         v_uv.y = max(-max_vel, min(new_v, max_vel));
     }
 
-    imageStore(velocity_image, xy, vec4(v_uv, 0.0, 0.0));
+    imageStore(out_velocity_map, xy, vec4(v_uv, 0.0, 0.0));
 }

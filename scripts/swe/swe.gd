@@ -2,7 +2,7 @@
 extends Node
 class_name SWESimulation
 
-const dxdy := 1.084 #0.4
+const dxdy := 1.084 * 0.5
 
 @export var texture_size : Vector2i = Vector2i(512, 512)
 @export var map_height_texture : Texture2D
@@ -286,7 +286,8 @@ func _render_process(param_next_texture, tex_size, delta):
 	rd.compute_list_bind_compute_pipeline(compute_list, vel_pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, texture_sets[current_tex_index], 0)
 	rd.compute_list_bind_uniform_set(compute_list, height_us, 1)
-	rd.compute_list_bind_uniform_set(compute_list, velocity_set, VELOCITY_SET_INDEX)
+	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, VELOCITY_SET_INDEX)
+	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 3)
 	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), 4 * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	

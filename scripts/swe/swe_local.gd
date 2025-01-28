@@ -2,7 +2,7 @@
 extends Node
 class_name SWELocalSimulation
 
-const grid_step_base = 2.17 * 0.5 #0.2 * 2
+const grid_step_base = 2.17 * 0.5
 
 @export var texture_size : Vector2i = Vector2i(256, 256)
 @export var map_height_texture : Texture2D
