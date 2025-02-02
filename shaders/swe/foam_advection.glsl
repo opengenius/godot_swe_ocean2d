@@ -16,7 +16,12 @@ layout(push_constant, std430) uniform Params {
 } params;
 
 vec2 sampleVelocity(ivec2 xy) {
-    return imageLoad(velocity_map, xy).xy;
+    ivec2 size_max = ivec2(params.texture_size) - ivec2(1);
+
+    vec2 v11 = imageLoad(velocity_map, xy).xy;
+    vec2 v01 = imageLoad(velocity_map, clamp(xy + ivec2(-1, 0), ivec2(0), size_max)).xy;
+    vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), ivec2(0), size_max)).xy;
+    return vec2(v01.x + v11.x, v10.y + v11.y) * 0.5;
 }
 
 float advectFoam(ivec2 xy, vec2 velocity) {

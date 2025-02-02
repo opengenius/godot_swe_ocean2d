@@ -20,23 +20,23 @@
 [ext_resource type="Script" path="res://scripts/swe_local_visualisation.gd" id="21_kgi7a"]
 [ext_resource type="Script" path="res://scripts/swe_local_foam_rect.gd" id="25_qkwgx"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_fpb6s"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_odbtp"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_kwyg6"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_5cfy6"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_etcfx"]
 resource_local_to_scene = true
 shader = ExtResource("3_3lgil")
 shader_parameter/wave_ampl_freq_steepness_phase = PackedVector4Array(0.011, 2.83, 2.7, 0.942, 0.01, 3.032, 2.6, 0.954, 0.007, 3.266, 2.5, 0.967)
 shader_parameter/wave_direction = PackedVector4Array(0.707, 0.707, 0, 0, 0.928, 0.371, 0, 0, 0.819, 0.573, 0, 0)
-shader_parameter/current_pos2d_scale = Vector4(0, 0, 1, 0)
+shader_parameter/current_pos2d_scale = Vector4(0, 0, 0.125, 0)
 shader_parameter/height_map = ExtResource("4_5ogq6")
 shader_parameter/normals1_map = ExtResource("5_cbk6m")
 shader_parameter/normals2_map = ExtResource("6_adbk6")
 shader_parameter/caustics_map = ExtResource("4_wy46u")
 shader_parameter/foam_map = ExtResource("5_lxf47")
-shader_parameter/foam_mask_map = SubResource("Texture2DRD_fpb6s")
-shader_parameter/velocity_map = SubResource("Texture2DRD_kwyg6")
+shader_parameter/foam_mask_map = SubResource("Texture2DRD_odbtp")
+shader_parameter/velocity_map = SubResource("Texture2DRD_5cfy6")
 shader_parameter/noise_map = ExtResource("8_lkj4c")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kkyll"]
@@ -46,9 +46,9 @@ shader = ExtResource("12_4fdi5")
 shader = ExtResource("8_0sjq8")
 shader_parameter/dxdy = null
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_ucf0v"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_1cqml"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_dja4d"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_i32pe"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sdbx1"]
 resource_local_to_scene = true
@@ -61,16 +61,16 @@ shader_parameter/normals1_map = ExtResource("5_cbk6m")
 shader_parameter/normals2_map = ExtResource("6_adbk6")
 shader_parameter/caustics_map = ExtResource("4_wy46u")
 shader_parameter/foam_map = ExtResource("5_lxf47")
-shader_parameter/foam_mask_map = SubResource("Texture2DRD_ucf0v")
-shader_parameter/velocity_map = SubResource("Texture2DRD_dja4d")
+shader_parameter/foam_mask_map = SubResource("Texture2DRD_1cqml")
+shader_parameter/velocity_map = SubResource("Texture2DRD_i32pe")
 shader_parameter/noise_map = ExtResource("8_lkj4c")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pmb2w"]
 shader = ExtResource("8_0sjq8")
 shader_parameter/dxdy = 0.542
-shader_parameter/velocity_map = SubResource("Texture2DRD_dja4d")
+shader_parameter/velocity_map = SubResource("Texture2DRD_i32pe")
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_3aw7h"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_oddia"]
 
 [node name="root" type="Node2D"]
 
@@ -112,7 +112,7 @@ text = "Local SWE"
 [node name="SWELVisSprite2D" type="Sprite2D" parent="."]
 visible = false
 material = SubResource("ShaderMaterial_kkyll")
-scale = Vector2(3.612, 3.612)
+scale = Vector2(0.4515, 0.4515)
 texture = ExtResource("4_wy46u")
 centered = false
 region_enabled = true
@@ -201,7 +201,7 @@ visible = false
 material = SubResource("ShaderMaterial_pmb2w")
 position = Vector2(-1900, 0)
 scale = Vector2(1.805, 1.805)
-texture = SubResource("Texture2DRD_3aw7h")
+texture = SubResource("Texture2DRD_oddia")
 centered = false
 region_rect = Rect2(0, 0, 512, 512)
 script = ExtResource("9_3qqd1")

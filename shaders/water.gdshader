@@ -177,6 +177,8 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	const lowp float shininess = 256.0;
 	lowp vec3 halfwayDir = normalize(lightDir - view_dir);
 	lowp float spec = pow(max(dot(wave_n, halfwayDir), 0.0), shininess);
+	
+	lowp vec3 diff = max(dot(wave_n, lightDir), 0.0) * lightColor;
 
 	lowp vec3 specular = specularStrength * spec * lightColor;
 	//return vec4(specular, 1);
@@ -240,7 +242,6 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	//water_color = mix(water_color_with_sky, water_color, water_f);
 	//return water_color;
 
-	water_color = (water_color + vec4(specular, 0.0));
 	//return water_color;
 
 	//float foam_factor = clamp((0.5 - full_height) * 1.0, 0, 1) *
@@ -267,7 +268,9 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	//return vec4(foam);
 
 	//water_color.xyz += vec3(foam * foam_factor);
-	water_color.rgb = mix(water_color.rgb, vec3(1.0), foam_factor * foam);
+	water_color.rgb = mix(water_color.rgb, diff, foam_factor * foam);
+	
+	water_color = (water_color + vec4(specular, 0.0));
 
 	return water_color;
 }

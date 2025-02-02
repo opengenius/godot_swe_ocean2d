@@ -59,6 +59,11 @@ vec2 bilinearInterpolation(vec2 uv, ivec2 texSize) {
     );
 }
 
+vec2 cubic_inverse(vec2 in_t) {
+    vec2 t = vec2(1.0) - in_t;
+    return vec2(1.0) - t * t * t;
+}
+
 void main() {
 	ivec2 size = ivec2(params.texture_size.x - 1, params.texture_size.y - 1);
 
@@ -100,6 +105,10 @@ void main() {
     float dt_clamped = min(max_dt, params.dt);
     //const float max_vel = 100.0f;//params.dxdy / dt * 0.5f;
 
+    // damping velocities near the boundaries
+    const float dapmening_width = 32;
+    vec2 damping = cubic_inverse(min(vec2(1.0), min(xy, params.texture_size - xy) / dapmening_width));
+
     if ((n_i1j < (H_ij + EPS) && h_ij < EPS) ||
         n_ij < (H_i1j + EPS) && h_i1j < EPS) {
         v_uv.x = 0.0f;
@@ -117,6 +126,8 @@ void main() {
         float new_v = v_uv.y - dt_clamped * g * dh_dy - drag_koef * v_uv.y;
         v_uv.y = max(-max_vel, min(new_v, max_vel));
     }
+
+    v_uv *= damping;
 
     imageStore(out_velocity_map, xy, vec4(v_uv, 0.0, 0.0));
 }
