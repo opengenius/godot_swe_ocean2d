@@ -16,12 +16,12 @@ layout(push_constant, std430) uniform Params {
 } params;
 
 vec2 sampleVelocity(ivec2 xy) {
-    ivec2 size_max = ivec2(params.texture_size) - ivec2(1);
+    ivec2 coord_max = ivec2(params.texture_size) - ivec2(1);
 
     vec2 v11 = imageLoad(velocity_map, xy).xy;
-    vec2 v01 = imageLoad(velocity_map, clamp(xy + ivec2(-1, 0), ivec2(0), size_max)).xy;
-    vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), ivec2(0), size_max)).xy;
-    return vec2(v01.x + v11.x, v10.y + v11.y) * 0.5;
+    vec2 v01 = imageLoad(velocity_map, clamp(xy + ivec2(-1, 0), ivec2(0), coord_max)).xy;
+    vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), ivec2(0), coord_max)).xy;
+    return (vec2(v01.x, v10.y) + v11) * 0.5;
 }
 
 float advectFoam(ivec2 xy, vec2 velocity) {
@@ -30,13 +30,13 @@ float advectFoam(ivec2 xy, vec2 velocity) {
 }
 
 void main() {
-    const ivec2 size_max = ivec2(params.texture_size.x - 1, params.texture_size.y - 1);
+    const ivec2 size_max = ivec2(params.texture_size);
 
     // Get the current pixel coordinates
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     
     // Ensure we are within texture bounds
-    if (xy.x > size_max.x || xy.y > size_max.y) {
+    if (xy.x >= size_max.x || xy.y >= size_max.y) {
         return;
     }
 
