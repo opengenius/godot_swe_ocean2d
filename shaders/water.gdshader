@@ -14,6 +14,7 @@ uniform sampler2D caustics_map: filter_linear_mipmap, repeat_enable;
 uniform sampler2D foam_map: filter_linear_mipmap, repeat_enable;
 uniform sampler2D foam_mask_map: filter_linear;
 uniform sampler2D velocity_map: filter_linear;
+uniform sampler2D sim_height_map: filter_linear;
 uniform sampler2D noise_map: repeat_enable;
 
 const int MAX_Waves = 5;
@@ -98,7 +99,7 @@ vec4 waveNormal_h(vec2 pos, float time, float map_h) {
 	return vec4(n, normal_h.z); // opt out: normalize(n)
 }
 
-vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, float height) {
+vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, float height, vec2 sim_hd) {
 	//return vec4(fract(map_pos), 0, 1);
 
 	const lowp vec4 deep_water_color   = vec4(0.1, 0.15, 0.25, 1.0);
@@ -150,7 +151,7 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 
 	detail_n.xy *= 0.2 * (1.0 - height);
 
-  	lowp vec3 wave_n  = normalize(vec3(wave_n_h.xy + detail_n.xy, wave_n_h.z));
+  	lowp vec3 wave_n  = normalize(vec3(wave_n_h.xy + detail_n.xy + sim_hd, wave_n_h.z));
 	#endif
 #else
 	lowp vec3 wave_n = normalize(wave_n_h.xyz);
@@ -242,8 +243,6 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	//water_color = mix(water_color_with_sky, water_color, water_f);
 	//return water_color;
 
-	//return water_color;
-
 	//float foam_factor = clamp((0.5 - full_height) * 1.0, 0, 1) *
 			//clamp(wave_n_h.w * 100.0, 0, 1) * 2.0 * foam_mask;
 	//foam_mask = 1.0;
@@ -253,13 +252,13 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	//float foam = texture(foam_map, uv_scaled * 10.0 + wave_n_h.xy * 1.0 + vec2(1.0, 1.0)
 			//* wave_direction[0].xy * timeScaled * 0.2).r;
 
-	vec2 foam_uv = uv_scaled + wave_n_h.xy * 0.25;
-	float offset = texture(noise_map, foam_uv).r;
+	vec2 foam_uv = uv_scaled + (wave_n_h.xy + sim_hd * 0.0) * vec2(1.0, -1.0) * 0.25;
+	float offset = texture(noise_map, foam_uv + velocity * 0.000016).r;
 	float phase0 = fract(offset + timeScaled * 0.5f + 0.5f);
     float phase1 = fract(offset + timeScaled * 0.5f + 1.0f);
 	float flowLerp = abs((0.5f - phase0) / 0.5f);
 
-	const float vel_f = 0.08;
+	const float vel_f = 0.08;// * 4.0;
 	const float foam_scale = 5.0;
 	float foam0 = texture(foam_map, (foam_uv + velocity * phase0 * vel_f)* foam_scale).r;
 	float foam1 = texture(foam_map, (foam_uv + velocity * phase1 * vel_f)* foam_scale + vec2(0.5)).r;
@@ -294,14 +293,27 @@ void fragment() {
 
 		vec2 local_uv = (UV  - current_pos2d_scale.xy) / current_pos2d_scale.z;
 		float foam_mask = min(1.0, texture(foam_mask_map, local_uv).r);
-		//COLOR = vec4(foam_mask);
 		//foam_mask = 1.0;
-		vec2 velocity = texture(velocity_map, UV).rg;
-		//if (1.0 < length(velocity)) {
-			//velocity = normalize(velocity);
-		//}
+
+		vec2 velocity_map_tsize = vec2(textureSize(velocity_map, 0));
+    		vec2 offsetAmount = 1.0 / velocity_map_tsize;
+
+		vec2 vel01 = texture(velocity_map, local_uv - vec2(offsetAmount.x, 0.0)).rg;
+		vec2 vel10 = texture(velocity_map, local_uv - vec2(0.0, offsetAmount.y)).rg;
+		vec2 vel11 = texture(velocity_map, local_uv).rg;
+		vec2 velocity = vec2(vel11.x + vel01.x, vel11.y + vel10.y) * 0.5;
+		//vec2 velocity = texture(velocity_map, local_uv).rg;
+		velocity.x *= -1.0;
+		//velocity *= 0.1;
+
 		float h = color.r * 2.0;
-        COLOR = CalcColor(v_pos, colorGround, foam_mask, velocity, h);
+
+		float sim_h = texture(sim_height_map, local_uv).r + color.r;
+		const float grid_step = 1.084 * 0.5;
+		vec2 sim_hd = vec2(-dFdx(sim_h), -dFdy(sim_h)) * 1.0 / (grid_step * current_pos2d_scale.z);
+		//sim_hd = vec2(0.0);
+
+        COLOR = CalcColor(v_pos, colorGround, foam_mask, velocity, h, sim_hd);
     }
 }
 

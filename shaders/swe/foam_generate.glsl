@@ -50,7 +50,7 @@ void main() {
     float foam_value = clamp(max(diffused, abs(divergence) * 1.0), 0.0, 20.0);
 
     // Dissipation
-    const float dissipationRate = 0.9;
+    const float dissipationRate = 0.7;
     foam_value *= clamp(1.0 - dissipationRate * params.dt, 0.0, 1.0);
 
     // Write the foam value to the foam map

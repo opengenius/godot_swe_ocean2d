@@ -41,6 +41,9 @@ vec3 wave_normal(int i, vec2 pos, float time) {
     map_h = height_map( uv + wave_direction[i].xy * wavelength[i]);
 	*/
 
+	// this is nice to fill in new areas
+// float freq = wave_ampl_freq_steepness_phase[i].y * (1.0 - map_h * 0.1);
+
 	float freq = wave_ampl_freq_steepness_phase[i].y;
 	float steepness = wave_ampl_freq_steepness_phase[i].z;
 	float ampl = wave_ampl_freq_steepness_phase[i].x;
@@ -120,8 +123,16 @@ void main() {
 	const float water_base_level = 0.45;
 
 	float h_ij = 0.0;
-	if (xy_prev.x < 0 || xy_prev.y < 0 || xy_prev.x > size.x || xy_prev.y > size.y) {
-		h_ij = water_base_level - height;
+	bool prev_out_of_range = xy_prev.x < 0 || xy_prev.y < 0 || xy_prev.x > size.x || xy_prev.y > size.y;
+	if (prev_out_of_range) {
+		//h_ij = water_base_level - height;
+
+		vec2 pos = uv * 74.0 * vec2(1.0, -1.0);
+        vec3 normal_h = waveNormal_h(pos, globalTime());
+		float analitical_h = normal_h.z * 0.5;
+
+		h_ij = max(0.0, (water_base_level + analitical_h) - height);
+
 	} else {
 		h_ij = previous_image_bilinear(uv_previous).r;
 		// h_ij = imageLoad(previous_image, xy_prev).r;
@@ -130,6 +141,7 @@ void main() {
     if (height < 0.5) {
         vec2 pos = uv * 74.0 * vec2(1.0, -1.0);
         vec3 normal_h = waveNormal_h(pos, globalTime());
+		float analitical_h = normal_h.z * 0.5;
 
 		float h_dev = (height + h_ij) - water_base_level;
 
@@ -138,7 +150,7 @@ void main() {
 		WH = WH * WH;
 		float Wg = 1.0 - WH;
 
-		float blendedDeviation = WH * h_dev + Wg * normal_h.z * 0.5;
+		float blendedDeviation = WH * h_dev + Wg * analitical_h;
 
 		h_ij = max(0.0, (water_base_level + blendedDeviation) - height);
     }

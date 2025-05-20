@@ -1,76 +1,80 @@
-[gd_scene load_steps=30 format=4 uid="uid://dpci4hbq2jh6c"]
+[gd_scene load_steps=31 format=4 uid="uid://dpci4hbq2jh6c"]
 
 [ext_resource type="Texture2D" uid="uid://iva1ijk4af1m" path="res://textures/sand.png" id="1_52lr2"]
-[ext_resource type="Script" path="res://scripts/camera_2d.gd" id="1_md81a"]
-[ext_resource type="Shader" path="res://shaders/water.gdshader" id="3_3lgil"]
+[ext_resource type="Script" uid="uid://bn1nfbicfknkk" path="res://scripts/camera_2d.gd" id="1_md81a"]
+[ext_resource type="Shader" uid="uid://i46a0m1tifvq" path="res://shaders/water.gdshader" id="3_3lgil"]
 [ext_resource type="Texture2D" uid="uid://b4dknumtogyxb" path="res://textures/height.png" id="4_5ogq6"]
 [ext_resource type="Texture2D" uid="uid://bo4twtffyhgf1" path="res://textures/caustics.png" id="4_wy46u"]
 [ext_resource type="Texture2D" uid="uid://beyha7cg1jo8t" path="res://textures/normals1.png" id="5_cbk6m"]
 [ext_resource type="Texture2D" uid="uid://b8pwfmsotcgi5" path="res://textures/foam.png" id="5_lxf47"]
 [ext_resource type="Texture2D" uid="uid://bmw2a7qs3qx8d" path="res://textures/normals2.png" id="6_adbk6"]
-[ext_resource type="Shader" path="res://shaders/swe_visualisation.gdshader" id="8_0sjq8"]
+[ext_resource type="Shader" uid="uid://cj37q1hhttrr0" path="res://shaders/swe_visualisation.gdshader" id="8_0sjq8"]
 [ext_resource type="Texture2D" uid="uid://bnhjx5f4vc0fp" path="res://textures/foam_noise_tex.tres" id="8_lkj4c"]
-[ext_resource type="Script" path="res://scripts/swe/swe.gd" id="8_m18n5"]
-[ext_resource type="Script" path="res://scripts/swe_visualisation.gd" id="9_3qqd1"]
-[ext_resource type="Script" path="res://scripts/water.gd" id="9_lvgky"]
-[ext_resource type="Script" path="res://scripts/swe/swe_local.gd" id="11_v6sda"]
-[ext_resource type="Shader" path="res://shaders/grid_debug.gdshader" id="12_4fdi5"]
-[ext_resource type="Script" path="res://scripts/swe_foam_rect.gd" id="12_lrs4e"]
-[ext_resource type="Script" path="res://scripts/water_local.gd" id="12_myqi2"]
-[ext_resource type="Script" path="res://scripts/swe_local_visualisation.gd" id="21_kgi7a"]
-[ext_resource type="Script" path="res://scripts/swe_local_foam_rect.gd" id="25_qkwgx"]
+[ext_resource type="Script" uid="uid://d126jowrknl8e" path="res://scripts/swe/swe.gd" id="8_m18n5"]
+[ext_resource type="Script" uid="uid://v087t63rqmok" path="res://scripts/swe_visualisation.gd" id="9_3qqd1"]
+[ext_resource type="Script" uid="uid://dqpy3lh3c106h" path="res://scripts/water.gd" id="9_lvgky"]
+[ext_resource type="Script" uid="uid://pnohpopkp3ne" path="res://scripts/swe/swe_local.gd" id="11_v6sda"]
+[ext_resource type="Shader" uid="uid://dwhvm7umvyl2e" path="res://shaders/grid_debug.gdshader" id="12_4fdi5"]
+[ext_resource type="Script" uid="uid://cim5pjie7hgin" path="res://scripts/swe_foam_rect.gd" id="12_lrs4e"]
+[ext_resource type="Script" uid="uid://b4uvqlabgcpme" path="res://scripts/water_local.gd" id="12_myqi2"]
+[ext_resource type="Script" uid="uid://cltigkpe3bogs" path="res://scripts/swe_local_visualisation.gd" id="21_kgi7a"]
+[ext_resource type="Script" uid="uid://bbeccqjlw4vxa" path="res://scripts/swe_local_foam_rect.gd" id="25_qkwgx"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_odbtp"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_5m40n"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_5cfy6"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_x6kx1"]
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_jufm4"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_etcfx"]
 resource_local_to_scene = true
 shader = ExtResource("3_3lgil")
-shader_parameter/wave_ampl_freq_steepness_phase = PackedVector4Array(0.011, 2.83, 2.7, 0.942, 0.01, 3.032, 2.6, 0.954, 0.007, 3.266, 2.5, 0.967)
-shader_parameter/wave_direction = PackedVector4Array(0.707, 0.707, 0, 0, 0.928, 0.371, 0, 0, 0.819, 0.573, 0, 0)
-shader_parameter/current_pos2d_scale = Vector4(0, 0, 0.125, 0)
 shader_parameter/height_map = ExtResource("4_5ogq6")
 shader_parameter/normals1_map = ExtResource("5_cbk6m")
 shader_parameter/normals2_map = ExtResource("6_adbk6")
 shader_parameter/caustics_map = ExtResource("4_wy46u")
 shader_parameter/foam_map = ExtResource("5_lxf47")
-shader_parameter/foam_mask_map = SubResource("Texture2DRD_odbtp")
-shader_parameter/velocity_map = SubResource("Texture2DRD_5cfy6")
+shader_parameter/foam_mask_map = SubResource("Texture2DRD_5m40n")
+shader_parameter/velocity_map = SubResource("Texture2DRD_jufm4")
+shader_parameter/sim_height_map = SubResource("Texture2DRD_x6kx1")
 shader_parameter/noise_map = ExtResource("8_lkj4c")
+shader_parameter/wave_ampl_freq_steepness_phase = PackedVector4Array(0.011, 2.83, 2.7, 0.942, 0.01, 3.032, 2.6, 0.954, 0.007, 3.266, 2.5, 0.967)
+shader_parameter/wave_direction = PackedVector4Array(0.707, 0.707, 0, 0, 0.928, 0.371, 0, 0, 0.819, 0.573, 0, 0)
+shader_parameter/current_pos2d_scale = Vector4(0, 0, 1, 0)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_kkyll"]
 shader = ExtResource("12_4fdi5")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_44qya"]
 shader = ExtResource("8_0sjq8")
-shader_parameter/dxdy = null
+shader_parameter/dxdy = 0.0
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_1cqml"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_ymgag"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_i32pe"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_u2qr3"]
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_vnugj"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sdbx1"]
 resource_local_to_scene = true
 shader = ExtResource("3_3lgil")
-shader_parameter/wave_ampl_freq_steepness_phase = PackedVector4Array(0.011, 2.83, 2.7, 0.942, 0.01, 3.032, 2.6, 0.954, 0.007, 3.266, 2.5, 0.967)
-shader_parameter/wave_direction = PackedVector4Array(0.707, 0.707, 0, 0, 0.928, 0.371, 0, 0, 0.819, 0.573, 0, 0)
-shader_parameter/current_pos2d_scale = Vector4(0, 0, 1, 0)
 shader_parameter/height_map = ExtResource("4_5ogq6")
 shader_parameter/normals1_map = ExtResource("5_cbk6m")
 shader_parameter/normals2_map = ExtResource("6_adbk6")
 shader_parameter/caustics_map = ExtResource("4_wy46u")
 shader_parameter/foam_map = ExtResource("5_lxf47")
-shader_parameter/foam_mask_map = SubResource("Texture2DRD_1cqml")
-shader_parameter/velocity_map = SubResource("Texture2DRD_i32pe")
+shader_parameter/foam_mask_map = SubResource("Texture2DRD_ymgag")
+shader_parameter/velocity_map = SubResource("Texture2DRD_vnugj")
+shader_parameter/sim_height_map = SubResource("Texture2DRD_u2qr3")
 shader_parameter/noise_map = ExtResource("8_lkj4c")
+shader_parameter/wave_ampl_freq_steepness_phase = PackedVector4Array(0.011, 2.83, 2.7, 0.942, 0.01, 3.032, 2.6, 0.954, 0.007, 3.266, 2.5, 0.967)
+shader_parameter/wave_direction = PackedVector4Array(0.707, 0.707, 0, 0, 0.928, 0.371, 0, 0, 0.819, 0.573, 0, 0)
+shader_parameter/current_pos2d_scale = Vector4(0, 0, 1, 0)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pmb2w"]
 shader = ExtResource("8_0sjq8")
+shader_parameter/velocity_map = SubResource("Texture2DRD_vnugj")
 shader_parameter/dxdy = 0.542
-shader_parameter/velocity_map = SubResource("Texture2DRD_i32pe")
-
-[sub_resource type="Texture2DRD" id="Texture2DRD_oddia"]
 
 [node name="root" type="Node2D"]
 
@@ -112,7 +116,7 @@ text = "Local SWE"
 [node name="SWELVisSprite2D" type="Sprite2D" parent="."]
 visible = false
 material = SubResource("ShaderMaterial_kkyll")
-scale = Vector2(0.4515, 0.4515)
+scale = Vector2(3.612, 3.612)
 texture = ExtResource("4_wy46u")
 centered = false
 region_enabled = true
@@ -201,7 +205,7 @@ visible = false
 material = SubResource("ShaderMaterial_pmb2w")
 position = Vector2(-1900, 0)
 scale = Vector2(1.805, 1.805)
-texture = SubResource("Texture2DRD_oddia")
+texture = SubResource("Texture2DRD_u2qr3")
 centered = false
 region_rect = Rect2(0, 0, 512, 512)
 script = ExtResource("9_3qqd1")
