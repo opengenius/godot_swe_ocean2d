@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#include "image_utils.glslinc"
+
 // Invocations in the (x, y, z) dimension.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -73,39 +75,17 @@ vec3 waveNormal_h(vec2 pos, float time) {
 	return normal_h;
 }
 
-vec2 previous_image_bilinear(vec2 uv) {
-	ivec2 texSize = ivec2(params.texture_size);
-
-    vec2 coord = uv * vec2(texSize) - 0.5;
-    ivec2 baseCoord = ivec2(floor(coord));
-    vec2 fracCoord = coord - vec2(baseCoord);
-
-    baseCoord = clamp(baseCoord, ivec2(0), texSize - ivec2(1));
-    ivec2 neighborCoord1 = clamp(baseCoord + ivec2(1, 0), ivec2(0), texSize - ivec2(1));
-    ivec2 neighborCoord2 = clamp(baseCoord + ivec2(0, 1), ivec2(0), texSize - ivec2(1));
-    ivec2 neighborCoord3 = clamp(baseCoord + ivec2(1, 1), ivec2(0), texSize - ivec2(1));
-
-    vec2 c00 = imageLoad(previous_image, baseCoord).rg;
-    vec2 c10 = imageLoad(previous_image, neighborCoord1).rg;
-    vec2 c01 = imageLoad(previous_image, neighborCoord2).rg;
-    vec2 c11 = imageLoad(previous_image, neighborCoord3).rg;
-
-    return mix(
-        mix(c00, c10, fracCoord.x),
-        mix(c01, c11, fracCoord.x),
-        fracCoord.y
-    );
-}
+DEFINE_BILINEAR_INTERPOLATION(bilinear_previous, previous_image)
 
 void main() {
 	const ivec2 tl = ivec2(0, 0);
 
-	ivec2 size = ivec2(params.texture_size.x - 1, params.texture_size.y - 1);
+	ivec2 size = ivec2(params.texture_size);
 
 	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 
 	// Just in case the texture size is not divisable by 8.
-	if ((xy.x > size.x) || (xy.y > size.y)) {
+	if ((xy.x >= size.x) || (xy.y >= size.y)) {
 		return;
 	}
 
@@ -123,9 +103,9 @@ void main() {
 	const float water_base_level = 0.45;
 
 	float h_ij = 0.0;
-	bool prev_out_of_range = xy_prev.x < 0 || xy_prev.y < 0 || xy_prev.x > size.x || xy_prev.y > size.y;
+	bool prev_out_of_range = xy_prev.x < 0 || xy_prev.y < 0 || xy_prev.x >= size.x || xy_prev.y >= size.y;
 	if (prev_out_of_range) {
-		//h_ij = water_base_level - height;
+		// h_ij = water_base_level - height;
 
 		vec2 pos = uv * 74.0 * vec2(1.0, -1.0);
         vec3 normal_h = waveNormal_h(pos, globalTime());
@@ -134,7 +114,7 @@ void main() {
 		h_ij = max(0.0, (water_base_level + analitical_h) - height);
 
 	} else {
-		h_ij = previous_image_bilinear(uv_previous).r;
+		h_ij = bilinear_previous(uv_previous * size - 0.5, size).r;
 		// h_ij = imageLoad(previous_image, xy_prev).r;
 	}
 

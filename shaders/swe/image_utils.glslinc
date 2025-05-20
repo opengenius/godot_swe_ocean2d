@@ -1,0 +1,16 @@
+#define DEFINE_BILINEAR_INTERPOLATION(NAME, IMAGE)                             \
+vec2 NAME(vec2 coord, ivec2 texSize) {                                            \
+    ivec2 baseCoord = ivec2(coord);                                     \
+    vec2 fracCoord = coord - vec2(baseCoord);                                  \
+    baseCoord = clamp(baseCoord, ivec2(0), texSize - ivec2(1));                \
+    ivec2 neighborCoord1 = clamp(baseCoord + ivec2(1, 0), ivec2(0), texSize - ivec2(1)); \
+    ivec2 neighborCoord2 = clamp(baseCoord + ivec2(0, 1), ivec2(0), texSize - ivec2(1)); \
+    ivec2 neighborCoord3 = clamp(baseCoord + ivec2(1, 1), ivec2(0), texSize - ivec2(1)); \
+                                                                                 \
+    vec2 c00 = imageLoad(IMAGE, baseCoord).rg;                                 \
+    vec2 c10 = imageLoad(IMAGE, neighborCoord1).rg;                            \
+    vec2 c01 = imageLoad(IMAGE, neighborCoord2).rg;                            \
+    vec2 c11 = imageLoad(IMAGE, neighborCoord3).rg;                            \
+                                                                                 \
+    return mix(mix(c00, c10, fracCoord.x), mix(c01, c11, fracCoord.x), fracCoord.y); \
+}

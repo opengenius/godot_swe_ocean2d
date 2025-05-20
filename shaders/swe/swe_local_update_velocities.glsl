@@ -1,6 +1,8 @@
 #[compute]
 #version 450
 
+#include "image_utils.glslinc"
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(r32f, set = 0, binding = 0) uniform restrict readonly image2D current_image;
@@ -37,27 +39,7 @@ vec2 global_uv(ivec2 xy) {
 |0|0.25|0.75|1| linear
 */
 
-vec2 bilinearInterpolation(vec2 uv, ivec2 texSize) {
-    vec2 coord = uv * vec2(texSize) - 0.5;
-    ivec2 baseCoord = ivec2(floor(coord));
-    vec2 fracCoord = coord - vec2(baseCoord);
-
-    baseCoord = clamp(baseCoord, ivec2(0), texSize - ivec2(1));
-    ivec2 neighborCoord1 = clamp(baseCoord + ivec2(1, 0), ivec2(0), texSize - ivec2(1));
-    ivec2 neighborCoord2 = clamp(baseCoord + ivec2(0, 1), ivec2(0), texSize - ivec2(1));
-    ivec2 neighborCoord3 = clamp(baseCoord + ivec2(1, 1), ivec2(0), texSize - ivec2(1));
-
-    vec2 c00 = imageLoad(velocity_image, baseCoord).rg;
-    vec2 c10 = imageLoad(velocity_image, neighborCoord1).rg;
-    vec2 c01 = imageLoad(velocity_image, neighborCoord2).rg;
-    vec2 c11 = imageLoad(velocity_image, neighborCoord3).rg;
-
-    return mix(
-        mix(c00, c10, fracCoord.x),
-        mix(c01, c11, fracCoord.x),
-        fracCoord.y
-    );
-}
+DEFINE_BILINEAR_INTERPOLATION(bilinearVelocity, velocity_image)
 
 vec2 cubic_inverse(vec2 in_t) {
     vec2 t = vec2(1.0) - in_t;
@@ -95,7 +77,7 @@ void main() {
 	ivec2 xy_prev = ivec2(uv_previous * params.texture_size);
     vec2 v_uv = vec2(0.0);
     if (xy_prev.x >= 0 && xy_prev.y >= 0 && xy_prev.x < size.x && xy_prev.y < size.y) {
-        v_uv = bilinearInterpolation(uv_previous, ivec2(params.texture_size)).rg;
+        v_uv = bilinearVelocity(uv_previous * params.texture_size - 0.5, ivec2(params.texture_size)).rg;
         //v_uv = imageLoad(velocity_image, xy_prev).rg;
     }
 
