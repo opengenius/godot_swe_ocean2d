@@ -21,7 +21,7 @@ const int MAX_Waves = 5;
 const int numWaves = 3;
 uniform vec4 wave_ampl_freq_steepness_phase[MAX_Waves];
 uniform vec4 wave_direction[MAX_Waves];
-uniform vec4 current_pos2d_scale = vec4(0.0, 0.0, 1.0, 0.0);
+uniform vec4 current_pos2d_scale;// = vec4(0.0, 0.0, 1.0, 0.0);
 
 //SAMPLER2D(colorTexture, 0); // height
 //SAMPLER2D(colorTexture1, 1);// ground

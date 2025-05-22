@@ -119,7 +119,6 @@ var height_us: RID
 var fill_shader : RID
 var fill_pipeline : RID
 var vel_advect_shader: RID
-var vel_advect_pipeline : RID
 var vel_shader : RID
 var vel_pipeline : RID
 var shader : RID
@@ -160,11 +159,6 @@ func _initialize_compute_code(init_with_texture_size):
 	var fill_shader_file = load("res://shaders/swe/swe_local_fill_with_waves.glsl")
 	fill_shader = rd.shader_create_from_spirv(fill_shader_file.get_spirv())
 	fill_pipeline = rd.compute_pipeline_create(fill_shader)
-	
-	# Advect velocities shader
-	var vel_advect_shader_file = load("res://shaders/swe/swe_local_advect_velocities.glsl")
-	vel_advect_shader = rd.shader_create_from_spirv(vel_advect_shader_file.get_spirv())
-	vel_advect_pipeline = rd.compute_pipeline_create(vel_advect_shader)
 	
 	# Velocities shader
 	var vel_shader_file = load("res://shaders/swe/swe_local_update_velocities.glsl")
@@ -318,17 +312,12 @@ func _render_process(tex_size: Vector2i, delta: float,
 	rd.compute_list_bind_uniform_set(compute_list, height_uset, 0)
 	rd.compute_list_bind_uniform_set(compute_list, tmp_r_uset, 1)
 	rd.compute_list_bind_uniform_set(compute_list, height_us, 2)
+	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 3)
+	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, 4)
 	rd.compute_list_set_push_constant(compute_list, fill_constants.to_byte_array(), fill_constants.size() * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	
-	# advect velocities
-	rd.compute_list_bind_compute_pipeline(compute_list, vel_advect_pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 0)
-	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, 1)
-	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
-	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
-	
-	# update velocities
+	# advect + update velocities
 	rd.compute_list_bind_compute_pipeline(compute_list, vel_pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, tmp_r_uset, 0)
 	rd.compute_list_bind_uniform_set(compute_list, height_us, 1)

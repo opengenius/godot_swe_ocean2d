@@ -12,8 +12,8 @@ layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
 	float dxdy;
 	float dt;
-    vec4 prev_pos2d_scale; // relative to current
-	vec4 pos2d_scale; // global, current
+    //vec4 prev_pos2d_scale; // relative to current
+	//vec4 pos2d_scale; // global, current
 } params;
 
 const float EPS = 0.001f;

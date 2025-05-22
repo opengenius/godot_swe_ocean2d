@@ -9,6 +9,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(r32f, set = 0, binding = 0) uniform restrict readonly image2D previous_image;
 layout(r32f, set = 1, binding = 0) uniform restrict image2D current_image;
 layout(set = 2, binding = 0) uniform sampler2D height_map;
+layout(rg32f, set = 3, binding = 0) uniform restrict readonly image2D velocity_image;
+layout(rg32f, set = 4, binding = 0) uniform restrict writeonly image2D out_velocity_map;
 
 layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
@@ -77,10 +79,19 @@ vec3 waveNormal_h(vec2 pos, float time) {
 
 DEFINE_BILINEAR_INTERPOLATION(bilinear_previous, previous_image)
 
+/**
+|_0_|_1_|
+|0|0|1|1| nearest
+|0|0.25|0.75|1| linear
+*/
+
+DEFINE_BILINEAR_INTERPOLATION(bilinearVelocity, velocity_image)
+
 void main() {
 	const ivec2 tl = ivec2(0, 0);
 
 	ivec2 size = ivec2(params.texture_size);
+	ivec2 coord_max = size - ivec2(1);
 
 	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 
@@ -101,11 +112,23 @@ void main() {
     float height = texture(height_map, uv).r;
 
 	const float water_base_level = 0.45;
+	const float dapmening_width = 32.0;
+	// const float EPS = 0.001f;
+	const float oor_speed_scale = 2.0;
 
 	float h_ij = 0.0;
+	vec2 v_uv = vec2(0.0);
 	bool prev_out_of_range = xy_prev.x < 0 || xy_prev.y < 0 || xy_prev.x >= size.x || xy_prev.y >= size.y;
 	if (prev_out_of_range) {
-		// h_ij = water_base_level - height;
+		// h_ij = max(0.0, water_base_level - height);
+		
+		ivec2 xy_prev_clamped = clamp(xy_prev, tl, coord_max);
+		float h_nearest = imageLoad(previous_image, xy_prev_clamped).r;
+
+		vec2 uv_prev_clamped = (vec2(xy_prev_clamped) + 0.5) / params.texture_size;
+		vec2 uv_prev_clamped_local = (uv_prev_clamped - params.prev_pos2d_scale.xy) / params.prev_pos2d_scale.z;
+		vec2 uv_prev_clamped_global = uv_prev_clamped_local * params.pos2d_scale.z + params.pos2d_scale.xy;
+    	float height_prev_clamped = min(texture(height_map, uv_prev_clamped_global).r, water_base_level);
 
 		vec2 pos = uv * 74.0 * vec2(1.0, -1.0);
         vec3 normal_h = waveNormal_h(pos, globalTime());
@@ -113,10 +136,25 @@ void main() {
 
 		h_ij = max(0.0, (water_base_level + analitical_h) - height);
 
+		// Distance from valid range, in pixels
+		vec2 dist = vec2(0.0);
+		dist.x = float(xy_prev.x < 0 ? -xy_prev.x : max(0, xy_prev.x - (size.x - 1)));
+		dist.y = float(xy_prev.y < 0 ? -xy_prev.y : max(0, xy_prev.y - (size.y - 1)));
+
+		// Normalize and clamp fade based on max 2-3 pixels out
+		float fade = clamp(max(dist.x, dist.y) / dapmening_width, 0.0, 1.0);
+
+		// Interpolate
+		h_ij = max(0.0, mix(height_prev_clamped + h_nearest, height + h_ij, fade) - height);
+		v_uv = -normal_h.xy * oor_speed_scale * fade;
+
 	} else {
 		h_ij = bilinear_previous(uv_previous * size - 0.5, size).r;
 		// h_ij = imageLoad(previous_image, xy_prev).r;
+		v_uv = bilinearVelocity(uv_previous * params.texture_size - 0.5, size).rg;
 	}
+
+	imageStore(out_velocity_map, xy, vec4(v_uv, 0.0, 0.0));
 
     if (height < 0.5) {
         vec2 pos = uv * 74.0 * vec2(1.0, -1.0);

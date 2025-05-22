@@ -279,7 +279,7 @@ func _render_process(param_next_texture, tex_size, delta):
 	rd.compute_list_bind_compute_pipeline(compute_list, vel_advect_pipeline)
 	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 0)
 	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, 1)
-	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
+	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), 4 * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	
 	# update velocities

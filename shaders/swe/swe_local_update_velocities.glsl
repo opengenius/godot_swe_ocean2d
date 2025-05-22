@@ -33,21 +33,16 @@ vec2 global_uv(ivec2 xy) {
     return uv * params.pos2d_scale.z + params.pos2d_scale.xy;
 }
 
-/**
-|_0_|_1_|
-|0|0|1|1| nearest
-|0|0.25|0.75|1| linear
-*/
-
-DEFINE_BILINEAR_INTERPOLATION(bilinearVelocity, velocity_image)
-
 vec2 cubic_inverse(vec2 in_t) {
     vec2 t = vec2(1.0) - in_t;
     return vec2(1.0) - t * t * t;
 }
 
+DEFINE_BILINEAR_INTERPOLATION(bilinear_interpolation, velocity_image)
+
 void main() {
-	ivec2 size = ivec2(params.texture_size.x - 1, params.texture_size.y - 1);
+	ivec2 size = ivec2(params.texture_size);
+    ivec2 coord_max = size - ivec2(1);
 
 	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 
@@ -57,34 +52,36 @@ void main() {
 	}
 
     float h_ij = imageLoad(current_image, xy).r;
-    float h_i1j = imageLoad(current_image, clamp(xy + ivec2(1, 0), tl, size)).r;
-    float h_ij1 = imageLoad(current_image, clamp(xy + ivec2(0, 1), tl, size)).r;
+    float h_i1j = imageLoad(current_image, clamp(xy + ivec2(1, 0), tl, coord_max)).r;
+    float h_ij1 = imageLoad(current_image, clamp(xy + ivec2(0, 1), tl, coord_max)).r;
 
     float H_ij = texture(height_map, global_uv(xy)).r;
-    float H_i1j = texture(height_map, global_uv(clamp(xy + ivec2(1, 0), tl, size))).r;
-    float H_ij1 = texture(height_map, global_uv(clamp(xy + ivec2(0, 1), tl, size))).r;
+    float H_i1j = texture(height_map, global_uv(clamp(xy + ivec2(1, 0), tl, coord_max))).r;
+    float H_ij1 = texture(height_map, global_uv(clamp(xy + ivec2(0, 1), tl, coord_max))).r;
 
     float n_ij = h_ij + H_ij;
     float n_i1j = h_i1j + H_i1j;
     float n_ij1 = h_ij1 + H_ij1;
 
-    // vec2 v_uv = imageLoad(velocity_image, xy).rg;
+    float dt_clamped = min(max_dt, params.dt);
+    vec2 v_uv = imageLoad(velocity_image, xy).rg;
 
-    vec2 uv = (vec2(xy) + 0.5) / params.texture_size;
+    // advection
+    {
+        float v_v = bilinear_interpolation(vec2(xy) + vec2(0.5, -0.5), size).y;
+        vec2 pos = vec2(xy) - dt_clamped * vec2(v_uv.x, v_v) / params.dxdy;
+        float new_u = bilinear_interpolation(pos, size).x;
+        
+        float v_u = bilinear_interpolation(vec2(xy) + vec2(-0.5, 0.5), size).x;
+        pos = vec2(xy) - dt_clamped * vec2(v_u, v_uv.y) / params.dxdy;
+        float new_v = bilinear_interpolation(pos, size).y;
 
-    // Calculate UV coordinates in the previous image space
-    vec2 uv_previous = uv * params.prev_pos2d_scale.z + params.prev_pos2d_scale.xy;
-	ivec2 xy_prev = ivec2(uv_previous * params.texture_size);
-    vec2 v_uv = vec2(0.0);
-    if (xy_prev.x >= 0 && xy_prev.y >= 0 && xy_prev.x < size.x && xy_prev.y < size.y) {
-        v_uv = bilinearVelocity(uv_previous * params.texture_size - 0.5, ivec2(params.texture_size)).rg;
-        //v_uv = imageLoad(velocity_image, xy_prev).rg;
+        v_uv = vec2(new_u, new_v);
     }
 
     // enable drag force on the shores
     // float drag_koef = h_ij < drag_shore_height_threshold ? drag_factor : 0.0f;
     float drag_koef = 0.0f;
-    float dt_clamped = min(max_dt, params.dt);
     //const float max_vel = 100.0f;//params.dxdy / dt * 0.5f;
 
     // damping velocities near the boundaries
