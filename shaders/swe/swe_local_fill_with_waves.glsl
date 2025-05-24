@@ -114,7 +114,7 @@ void main() {
 	const float water_base_level = 0.45;
 	const float dapmening_width = 32.0;
 	// const float EPS = 0.001f;
-	const float oor_speed_scale = 2.0;
+	const float oor_speed_scale = 1.0;
 
 	float h_ij = 0.0;
 	vec2 v_uv = vec2(0.0);
@@ -144,9 +144,17 @@ void main() {
 		// Normalize and clamp fade based on max 2-3 pixels out
 		float fade = clamp(max(dist.x, dist.y) / dapmening_width, 0.0, 1.0);
 
+		//normal_h.z = 1. / (50.0 + normal_h.z * 30.0f);
+		// normal_h.z = 1. / (1.0 + exp((0.3+normal_h.z) * 20.0f));
+		// normal_h.z *= 1. / (1.0 + exp((0.03 + normal_h.z) * 90.0f));
+		normal_h.z *= 1. / (1.0 + exp((0.02 + normal_h.z) * 20.0f));
+		normal_h = normalize(normal_h);
+		// normal_h.xy = normalize(normal_h.xy * 1.0 + exp((0.02 + normal_h.z) * 400.0f));
+
 		// Interpolate
 		h_ij = max(0.0, mix(height_prev_clamped + h_nearest, height + h_ij, fade) - height);
-		v_uv = -normal_h.xy * oor_speed_scale * fade;
+		float h_f = min(1.0, height * 2.0);
+		v_uv = -normal_h.xy * oor_speed_scale * fade * h_f * h_f;
 
 	} else {
 		h_ij = bilinear_previous(uv_previous * size - 0.5, size).r;

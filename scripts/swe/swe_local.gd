@@ -339,7 +339,7 @@ func _render_process(tex_size: Vector2i, delta: float,
 	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 0)
 	rd.compute_list_bind_uniform_set(compute_list, foam_uset, 1)
 	rd.compute_list_bind_uniform_set(compute_list, tmp_r_uset, 2)
-	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), 4 * 4)
+	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), 8 * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	
 	# advect foam

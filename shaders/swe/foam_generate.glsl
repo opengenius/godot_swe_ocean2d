@@ -17,6 +17,7 @@ layout(push_constant, std430) uniform Params {
     vec2 texture_size;
     float dxdy;
     float dt;
+    vec4 prev_pos2d_scale; // relative to current
 } params;
 
 void main() {    
@@ -36,15 +37,21 @@ void main() {
 	vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), zero, size_max)).rg;
 	float divergence = (v11.x - v01.x + v11.y - v10.y) * 1.0 / params.dxdy;
 
+    vec2 uv = (vec2(xy) + 0.5) / params.texture_size;
+
+    // Calculate UV coordinates in the previous image space
+    vec2 uv_previous = uv * params.prev_pos2d_scale.z + params.prev_pos2d_scale.xy;
+	ivec2 xy_prev = ivec2(uv_previous * params.texture_size);
+
     // diffusion
     const float diffusionRate = 0.2;
-    float foam_cur = imageLoad(foam_map, xy).r;
+    float foam_cur = imageLoad(foam_map, xy_prev).r;
     // float diffused = foam_cur;
     float diffused = foam_cur + diffusionRate * params.dt / params.dxdy * (
-          imageLoad(foam_map, clamp(xy + ivec2( 1,  0), zero, size_max)).r
-        + imageLoad(foam_map, clamp(xy + ivec2(-1,  0), zero, size_max)).r
-        + imageLoad(foam_map, clamp(xy + ivec2( 0,  1), zero, size_max)).r
-        + imageLoad(foam_map, clamp(xy + ivec2( 0, -1), zero, size_max)).r
+          imageLoad(foam_map, clamp(xy_prev + ivec2( 1,  0), zero, size_max)).r
+        + imageLoad(foam_map, clamp(xy_prev + ivec2(-1,  0), zero, size_max)).r
+        + imageLoad(foam_map, clamp(xy_prev + ivec2( 0,  1), zero, size_max)).r
+        + imageLoad(foam_map, clamp(xy_prev + ivec2( 0, -1), zero, size_max)).r
         - 4.0 * foam_cur);
 
     float foam_value = clamp(max(diffused, abs(divergence) * 1.0), 0.0, 20.0);
