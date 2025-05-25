@@ -161,7 +161,7 @@ func _initialize_compute_code(init_with_texture_size):
 	fill_pipeline = rd.compute_pipeline_create(fill_shader)
 	
 	# Velocities shader
-	var vel_shader_file = load("res://shaders/swe/swe_local_update_velocities.glsl")
+	var vel_shader_file = load("res://shaders/swe/swe_update_velocities.glsl")
 	vel_shader = rd.shader_create_from_spirv(vel_shader_file.get_spirv())
 	vel_pipeline = rd.compute_pipeline_create(vel_shader)
 

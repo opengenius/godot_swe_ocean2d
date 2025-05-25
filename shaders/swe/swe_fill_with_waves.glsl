@@ -4,8 +4,11 @@
 // Invocations in the (x, y, z) dimension.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(r32f, set = 0, binding = 0) uniform restrict image2D current_image;
-layout(set = 1, binding = 0) uniform sampler2D height_map;
+layout(r32f, set = 0, binding = 0) uniform restrict readonly image2D previous_image;
+layout(r32f, set = 1, binding = 0) uniform restrict writeonly image2D current_image;
+layout(set = 2, binding = 0) uniform sampler2D height_map;
+layout(rg32f, set = 3, binding = 0) uniform restrict readonly image2D velocity_image;
+layout(rg32f, set = 4, binding = 0) uniform restrict writeonly image2D out_velocity_map;
 
 layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
@@ -79,11 +82,13 @@ void main() {
 		return;
 	}
 
-    // vec2 v_uv = imageLoad(velocity_image, xy).rg;
+	// Copy velocities
+    vec2 v_uv = imageLoad(velocity_image, xy).rg;
+	imageStore(out_velocity_map, xy, vec4(v_uv, 0.0, 0.0));
 
     vec2 uv = (vec2(xy) + 0.5) / params.texture_size;
 
-    float h_ij = imageLoad(current_image, xy).r;
+    float h_ij = imageLoad(previous_image, xy).r;
 
     float height = texture(height_map, uv).r;
 

@@ -10,7 +10,6 @@ const dxdy := 1.084 * 0.5
 var texture := Texture2DRD.new()
 var vel_texture := Texture2DRD.new()
 var foam_texture := Texture2DRD.new()
-var next_texture : int = 0
 
 
 # Called when the node enters the scene tree for the first time.
@@ -26,17 +25,14 @@ func _exit_tree():
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
-	# Increase our next texture index.
-	next_texture = (next_texture + 1) % TEXTURES_COUNT
-
 	# Update our texture to show our next result (we are about to create).
 	# Note that `_initialize_compute_code` may not have run yet so the first
 	# frame this my be an empty RID.
-	texture.texture_rd_rid = texture_rds[next_texture]
+	texture.texture_rd_rid = dyn_height_rd
 	vel_texture.texture_rd_rid = texture_velocity_rd
 	foam_texture.texture_rd_rid = texture_foam_rd
 		
-	RenderingServer.call_on_render_thread(_render_process.bind(next_texture, texture_size, delta))
+	RenderingServer.call_on_render_thread(_render_process.bind(texture_size, delta))
 
 
 ###############################################################################
@@ -53,8 +49,6 @@ var init_shader : RID
 var init_pipeline : RID
 var fill_shader : RID
 var fill_pipeline : RID
-var vel_advect_shader: RID
-var vel_advect_pipeline : RID
 var vel_shader : RID
 var vel_pipeline : RID
 var shader : RID
@@ -64,8 +58,9 @@ var foam_pipeline : RID
 var foam_adv_shader : RID
 var foam_adv_pipeline : RID
 
-# heigths
-var texture_rds : Array = []
+# heigth
+var dyn_height_rd : RID
+var dyn_height_us : RID
 
 # velocity
 var texture_velocity_rd: RID
@@ -83,8 +78,6 @@ var foam_uset: RID
 
 var texture_height_rd: RID
 var height_us: RID
-
-var texture_sets : Array = []
 
 var init_heights = true
 var rtime = 0.0
@@ -124,11 +117,6 @@ func _initialize_compute_code(init_with_texture_size):
 	fill_shader = rd.shader_create_from_spirv(fill_shader_file.get_spirv())
 	fill_pipeline = rd.compute_pipeline_create(fill_shader)
 
-	# Advect velocities shader
-	var vel_advect_shader_file = load("res://shaders/swe/swe_local_advect_velocities.glsl")
-	vel_advect_shader = rd.shader_create_from_spirv(vel_advect_shader_file.get_spirv())
-	vel_advect_pipeline = rd.compute_pipeline_create(vel_advect_shader)
-	
 	# Velocities shader
 	var vel_shader_file = load("res://shaders/swe/swe_update_velocities.glsl")
 	vel_shader = rd.shader_create_from_spirv(vel_shader_file.get_spirv())
@@ -175,10 +163,9 @@ func _initialize_compute_code(init_with_texture_size):
 	if Engine.is_editor_hint():
 		tf.usage_bits += RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
 	
-	for i in range(TEXTURES_COUNT):
-		texture_rds.push_back(rd.texture_create(tf, RDTextureView.new(), []))
-		rd.texture_clear(texture_rds[i], Color(0, 0, 0, 0), 0, 1, 0, 1)
-		texture_sets.push_back(_create_uniform_set(shader, texture_rds[i]))
+	dyn_height_rd = rd.texture_create(tf, RDTextureView.new(), [])
+	rd.texture_clear(dyn_height_rd, Color(0, 0, 0, 0), 0, 1, 0, 1)
+	dyn_height_us = _create_uniform_set(shader, dyn_height_rd)
 	
 	tmp_r_map_rd = rd.texture_create(tf, RDTextureView.new(), [])
 	tmp_r_uset = _create_uniform_set(shader, tmp_r_map_rd)
@@ -204,9 +191,7 @@ func _initialize_compute_code(init_with_texture_size):
 
 func _free_compute_resources():
 	# Note that our sets and pipeline are cleaned up automatically as they are dependencies :P
-	for i in range(TEXTURES_COUNT):
-		if texture_rds[i]:
-			rd.free_rid(texture_rds[i])
+	rd.free_rid(dyn_height_rd)
 	rd.free_rid(texture_velocity_rd)
 
 	if shader:
@@ -218,7 +203,7 @@ func _free_compute_resources():
 	# todo: pipeline, uniform sets?
 
 
-func _render_process(param_next_texture, tex_size, delta):
+func _render_process(tex_size, delta):
 	rtime += delta
 	
 	# We don't have structures (yet) so we need to build our push constant
@@ -245,8 +230,6 @@ func _render_process(param_next_texture, tex_size, delta):
 	var x_groups = (tex_size.x - 1) / 8 + 1
 	var y_groups = (tex_size.y - 1) / 8 + 1
 	
-	var current_tex_index = (param_next_texture - 1) % TEXTURES_COUNT
-	
 	var compute_list := rd.compute_list_begin()
 	
 	if init_heights:
@@ -258,7 +241,7 @@ func _render_process(param_next_texture, tex_size, delta):
 		fill_constants.push_back(0.0)
 		fill_constants.push_back(0.0)
 		rd.compute_list_bind_compute_pipeline(compute_list, init_pipeline)
-		rd.compute_list_bind_uniform_set(compute_list, texture_sets[current_tex_index], 0)
+		rd.compute_list_bind_uniform_set(compute_list, dyn_height_us, 0)
 		rd.compute_list_bind_uniform_set(compute_list, height_us, 1)
 		rd.compute_list_set_push_constant(compute_list, fill_constants.to_byte_array(), fill_constants.size() * 4)
 		rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
@@ -270,31 +253,27 @@ func _render_process(param_next_texture, tex_size, delta):
 	fill_constants.push_back(dxdy)
 	fill_constants.push_back(rtime)
 	rd.compute_list_bind_compute_pipeline(compute_list, fill_pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, texture_sets[current_tex_index], 0)
-	rd.compute_list_bind_uniform_set(compute_list, height_us, 1)
+	rd.compute_list_bind_uniform_set(compute_list, dyn_height_us, 0)
+	rd.compute_list_bind_uniform_set(compute_list, tmp_r_uset, 1)
+	rd.compute_list_bind_uniform_set(compute_list, height_us, 2)
+	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 3)
+	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, 4)
 	rd.compute_list_set_push_constant(compute_list, fill_constants.to_byte_array(), fill_constants.size() * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	
-	# advect velocities
-	rd.compute_list_bind_compute_pipeline(compute_list, vel_advect_pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 0)
-	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, 1)
-	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), 4 * 4)
-	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
-	
-	# update velocities
+		# advect + update velocities
 	rd.compute_list_bind_compute_pipeline(compute_list, vel_pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, texture_sets[current_tex_index], 0)
+	rd.compute_list_bind_uniform_set(compute_list, tmp_r_uset, 0)
 	rd.compute_list_bind_uniform_set(compute_list, height_us, 1)
-	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, VELOCITY_SET_INDEX)
+	rd.compute_list_bind_uniform_set(compute_list, tmp_rg_uset, 2)
 	rd.compute_list_bind_uniform_set(compute_list, velocity_set, 3)
-	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), 4 * 4)
+	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	
 	# update heights
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
-	rd.compute_list_bind_uniform_set(compute_list, texture_sets[current_tex_index], 0)
-	rd.compute_list_bind_uniform_set(compute_list, texture_sets[param_next_texture], 1)
+	rd.compute_list_bind_uniform_set(compute_list, tmp_r_uset, 0)
+	rd.compute_list_bind_uniform_set(compute_list, dyn_height_us, 1)
 	rd.compute_list_bind_uniform_set(compute_list, velocity_set, VELOCITY_SET_INDEX)
 	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), 4 * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
