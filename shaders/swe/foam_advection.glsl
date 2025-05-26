@@ -1,13 +1,15 @@
 #[compute]
 #version 450
 
+layout(r32f, set = 0, binding = 0) uniform restrict image2D dyn_height_image;
+layout(rg32f, set = 0, binding = 1) uniform restrict image2D velocity_image;
+layout(set = 0, binding = 2) uniform sampler2D height_map;
+layout(r32f, set = 0, binding = 3) uniform restrict image2D tmp_r_image;
+layout(rg32f, set = 0, binding = 4) uniform restrict image2D tmp_rg_map;
+layout(r32f, set = 0, binding = 5) uniform restrict image2D foam_map;
+
 // Thread group size
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-
-// Uniforms and samplers for input buffers
-layout(rg32f, set = 0, binding = 0) uniform readonly image2D velocity_map;
-layout(r32f,  set = 1, binding = 0) uniform readonly image2D intermediateBuffer;
-layout(r32f,  set = 2, binding = 0) uniform writeonly image2D outputBuffer;
 
 layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
@@ -18,15 +20,15 @@ layout(push_constant, std430) uniform Params {
 vec2 sampleVelocity(ivec2 xy) {
     ivec2 coord_max = ivec2(params.texture_size) - ivec2(1);
 
-    vec2 v11 = imageLoad(velocity_map, xy).xy;
-    vec2 v01 = imageLoad(velocity_map, clamp(xy + ivec2(-1, 0), ivec2(0), coord_max)).xy;
-    vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), ivec2(0), coord_max)).xy;
+    vec2 v11 = imageLoad(velocity_image, xy).xy;
+    vec2 v01 = imageLoad(velocity_image, clamp(xy + ivec2(-1, 0), ivec2(0), coord_max)).xy;
+    vec2 v10 = imageLoad(velocity_image, clamp(xy + ivec2(0, -1), ivec2(0), coord_max)).xy;
     return (vec2(v01.x, v10.y) + v11) * 0.5;
 }
 
 float advectFoam(ivec2 xy, vec2 velocity) {
     ivec2 coordBack = ivec2(vec2(xy) + vec2(0.5) - velocity * params.dt / params.dxdy); // todo: velocity factor
-    return imageLoad(intermediateBuffer, coordBack).r;
+    return imageLoad(tmp_r_image, coordBack).r;
 }
 
 void main() {
@@ -48,5 +50,5 @@ void main() {
     // float advectedFoam = imageLoad(intermediateBuffer, xy).r;
 
     // Output the result
-    imageStore(outputBuffer, xy, vec4(advectedFoam));
+    imageStore(foam_map, xy, vec4(advectedFoam));
 }

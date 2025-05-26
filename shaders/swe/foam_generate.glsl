@@ -1,16 +1,15 @@
 #[compute]
 #version 450
 
+layout(r32f, set = 0, binding = 0) uniform restrict image2D dyn_height_image;
+layout(rg32f, set = 0, binding = 1) uniform restrict image2D velocity_image;
+layout(set = 0, binding = 2) uniform sampler2D height_map;
+layout(r32f, set = 0, binding = 3) uniform restrict image2D tmp_r_image;
+layout(rg32f, set = 0, binding = 4) uniform restrict image2D tmp_rg_map;
+layout(r32f, set = 0, binding = 5) uniform restrict image2D foam_map;
+
 // Thread group size
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-
-// Velocity map (input)
-layout(rg32f, set = 0, binding = 0) uniform readonly image2D velocity_map;
-
-// Foam map (input)
-layout(r32f, set = 1, binding = 0) uniform readonly image2D foam_map;
-// Foam map (output)
-layout(r32f, set = 2, binding = 0) uniform writeonly image2D out_foam_map;
 
 // Parameters for foam generation
 layout(push_constant, std430) uniform Params {
@@ -32,9 +31,9 @@ void main() {
         return;
     }
 
-    vec2 v11 = imageLoad(velocity_map, xy).rg;
-	vec2 v01 = imageLoad(velocity_map, clamp(xy + ivec2(-1, 0), zero, size_max)).rg;
-	vec2 v10 = imageLoad(velocity_map, clamp(xy + ivec2(0, -1), zero, size_max)).rg;
+    vec2 v11 = imageLoad(velocity_image, xy).rg;
+	vec2 v01 = imageLoad(velocity_image, clamp(xy + ivec2(-1, 0), zero, size_max)).rg;
+	vec2 v10 = imageLoad(velocity_image, clamp(xy + ivec2(0, -1), zero, size_max)).rg;
 	float divergence = (v11.x - v01.x + v11.y - v10.y) * 1.0 / params.dxdy;
 
     vec2 uv = (vec2(xy) + 0.5) / params.texture_size;
@@ -61,5 +60,5 @@ void main() {
     foam_value *= clamp(1.0 - dissipationRate * params.dt, 0.0, 1.0);
 
     // Write the foam value to the foam map
-    imageStore(out_foam_map, xy, vec4(foam_value));
+    imageStore(tmp_r_image, xy, vec4(foam_value));
 }

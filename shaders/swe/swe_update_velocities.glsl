@@ -3,12 +3,14 @@
 
 #include "image_utils.glslinc"
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(r32f, set = 0, binding = 0) uniform restrict image2D dyn_height_image;
+layout(rg32f, set = 0, binding = 1) uniform restrict image2D velocity_image;
+layout(set = 0, binding = 2) uniform sampler2D height_map;
+layout(r32f, set = 0, binding = 3) uniform restrict image2D tmp_r_image;
+layout(rg32f, set = 0, binding = 4) uniform restrict image2D tmp_rg_map;
+layout(r32f, set = 0, binding = 5) uniform restrict image2D foam_map;
 
-layout(r32f, set = 0, binding = 0) uniform restrict readonly image2D current_image;
-layout(set = 1, binding = 0) uniform sampler2D height_map;
-layout(rg32f, set = 2, binding = 0) uniform restrict readonly image2D velocity_image;
-layout(rg32f, set = 3, binding = 0) uniform restrict writeonly image2D out_velocity_map;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
@@ -38,7 +40,7 @@ vec2 cubic_inverse(vec2 in_t) {
     return vec2(1.0) - t * t * t;
 }
 
-DEFINE_BILINEAR_INTERPOLATION(bilinear_interpolation, velocity_image)
+DEFINE_BILINEAR_INTERPOLATION(bilinear_interpolation, tmp_rg_map)
 
 void main() {
 	ivec2 size = ivec2(params.texture_size);
@@ -51,9 +53,9 @@ void main() {
 		return;
 	}
 
-    float h_ij = imageLoad(current_image, xy).r;
-    float h_i1j = imageLoad(current_image, clamp(xy + ivec2(1, 0), tl, coord_max)).r;
-    float h_ij1 = imageLoad(current_image, clamp(xy + ivec2(0, 1), tl, coord_max)).r;
+    float h_ij = imageLoad(tmp_r_image, xy).r;
+    float h_i1j = imageLoad(tmp_r_image, clamp(xy + ivec2(1, 0), tl, coord_max)).r;
+    float h_ij1 = imageLoad(tmp_r_image, clamp(xy + ivec2(0, 1), tl, coord_max)).r;
 
     float H_ij = texture(height_map, global_uv(xy)).r;
     float H_i1j = texture(height_map, global_uv(clamp(xy + ivec2(1, 0), tl, coord_max))).r;
@@ -64,7 +66,7 @@ void main() {
     float n_ij1 = h_ij1 + H_ij1;
 
     float dt_clamped = min(max_dt, params.dt);
-    vec2 v_uv = imageLoad(velocity_image, xy).rg;
+    vec2 v_uv = imageLoad(tmp_rg_map, xy).rg;
 
     // advection
     {
@@ -108,5 +110,5 @@ void main() {
 
     v_uv *= damping;
 
-    imageStore(out_velocity_map, xy, vec4(v_uv, 0.0, 0.0));
+    imageStore(velocity_image, xy, vec4(v_uv, 0.0, 0.0));
 }

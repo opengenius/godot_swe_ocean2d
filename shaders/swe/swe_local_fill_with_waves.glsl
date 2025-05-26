@@ -3,14 +3,15 @@
 
 #include "image_utils.glslinc"
 
+layout(r32f, set = 0, binding = 0) uniform restrict image2D dyn_height_image;
+layout(rg32f, set = 0, binding = 1) uniform restrict image2D velocity_image;
+layout(set = 0, binding = 2) uniform sampler2D height_map;
+layout(r32f, set = 0, binding = 3) uniform restrict image2D tmp_r_image;
+layout(rg32f, set = 0, binding = 4) uniform restrict image2D tmp_rg_map;
+layout(r32f, set = 0, binding = 5) uniform restrict image2D foam_map;
+
 // Invocations in the (x, y, z) dimension.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-
-layout(r32f, set = 0, binding = 0) uniform restrict readonly image2D previous_image;
-layout(r32f, set = 1, binding = 0) uniform restrict writeonly image2D current_image;
-layout(set = 2, binding = 0) uniform sampler2D height_map;
-layout(rg32f, set = 3, binding = 0) uniform restrict readonly image2D velocity_image;
-layout(rg32f, set = 4, binding = 0) uniform restrict writeonly image2D out_velocity_map;
 
 layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
@@ -77,7 +78,7 @@ vec3 waveNormal_h(vec2 pos, float time) {
 	return normal_h;
 }
 
-DEFINE_BILINEAR_INTERPOLATION(bilinear_previous, previous_image)
+DEFINE_BILINEAR_INTERPOLATION(bilinear_previous, dyn_height_image)
 
 /**
 |_0_|_1_|
@@ -123,7 +124,7 @@ void main() {
 		// h_ij = max(0.0, water_base_level - height);
 		
 		ivec2 xy_prev_clamped = clamp(xy_prev, tl, coord_max);
-		float h_nearest = imageLoad(previous_image, xy_prev_clamped).r;
+		float h_nearest = imageLoad(dyn_height_image, xy_prev_clamped).r;
 
 		vec2 uv_prev_clamped = (vec2(xy_prev_clamped) + 0.5) / params.texture_size;
 		vec2 uv_prev_clamped_local = (uv_prev_clamped - params.prev_pos2d_scale.xy) / params.prev_pos2d_scale.z;
@@ -147,9 +148,9 @@ void main() {
 		//normal_h.z = 1. / (50.0 + normal_h.z * 30.0f);
 		// normal_h.z = 1. / (1.0 + exp((0.3+normal_h.z) * 20.0f));
 		// normal_h.z *= 1. / (1.0 + exp((0.03 + normal_h.z) * 90.0f));
-		normal_h.z *= 1. / (1.0 + exp((0.02 + normal_h.z) * 20.0f));
-		normal_h = normalize(normal_h);
-		// normal_h.xy = normalize(normal_h.xy * 1.0 + exp((0.02 + normal_h.z) * 400.0f));
+		// normal_h.z *= 1. / (1.0 + exp((0.01 + normal_h.z) * 5.0f));
+		// normal_h = normalize(normal_h);
+		normal_h.xy = normalize(normal_h.xy * 1.0 + exp((0.02 + normal_h.z) * 400.0f));
 
 		// Interpolate
 		h_ij = max(0.0, mix(height_prev_clamped + h_nearest, height + h_ij, fade) - height);
@@ -162,7 +163,7 @@ void main() {
 		v_uv = bilinearVelocity(uv_previous * params.texture_size - 0.5, size).rg;
 	}
 
-	imageStore(out_velocity_map, xy, vec4(v_uv, 0.0, 0.0));
+	imageStore(tmp_rg_map, xy, vec4(v_uv, 0.0, 0.0));
 
     if (height < 0.5) {
         vec2 pos = uv * 74.0 * vec2(1.0, -1.0);
@@ -181,5 +182,5 @@ void main() {
 		h_ij = max(0.0, (water_base_level + blendedDeviation) - height);
     }
 
-	imageStore(current_image, xy, vec4(h_ij));
+	imageStore(tmp_r_image, xy, vec4(h_ij));
 }

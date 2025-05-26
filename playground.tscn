@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=4 uid="uid://dpci4hbq2jh6c"]
+[gd_scene load_steps=33 format=4 uid="uid://dpci4hbq2jh6c"]
 
 [ext_resource type="Texture2D" uid="uid://iva1ijk4af1m" path="res://textures/sand.png" id="1_52lr2"]
 [ext_resource type="Script" uid="uid://bn1nfbicfknkk" path="res://scripts/camera_2d.gd" id="1_md81a"]
@@ -51,9 +51,9 @@ shader_parameter/dxdy = 0.0
 
 [sub_resource type="Texture2DRD" id="Texture2DRD_ymgag"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_u2qr3"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_2yo0f"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_vnugj"]
+[sub_resource type="Texture2DRD" id="Texture2DRD_3i8ot"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sdbx1"]
 resource_local_to_scene = true
@@ -64,17 +64,21 @@ shader_parameter/normals2_map = ExtResource("6_adbk6")
 shader_parameter/caustics_map = ExtResource("4_wy46u")
 shader_parameter/foam_map = ExtResource("5_lxf47")
 shader_parameter/foam_mask_map = SubResource("Texture2DRD_ymgag")
-shader_parameter/velocity_map = SubResource("Texture2DRD_vnugj")
-shader_parameter/sim_height_map = SubResource("Texture2DRD_u2qr3")
+shader_parameter/velocity_map = SubResource("Texture2DRD_3i8ot")
+shader_parameter/sim_height_map = SubResource("Texture2DRD_2yo0f")
 shader_parameter/noise_map = ExtResource("8_lkj4c")
 shader_parameter/wave_ampl_freq_steepness_phase = PackedVector4Array(0.011, 2.83, 2.7, 0.942, 0.01, 3.032, 2.6, 0.954, 0.007, 3.266, 2.5, 0.967)
 shader_parameter/wave_direction = PackedVector4Array(0.707, 0.707, 0, 0, 0.928, 0.371, 0, 0, 0.819, 0.573, 0, 0)
 shader_parameter/current_pos2d_scale = Vector4(0, 0, 1, 0)
 
+[sub_resource type="Texture2DRD" id="Texture2DRD_vnugj"]
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pmb2w"]
 shader = ExtResource("8_0sjq8")
 shader_parameter/velocity_map = SubResource("Texture2DRD_vnugj")
 shader_parameter/dxdy = 0.542
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_u2qr3"]
 
 [node name="root" type="Node2D"]
 
