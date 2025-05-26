@@ -6,8 +6,8 @@ extends Sprite2D
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	self.texture = swe.texture
-	self.material.set_shader_parameter("velocity_map", swe.vel_texture)
-	self.material.set_shader_parameter("dxdy", swe.dxdy)
+	self.material.set_shader_parameter(&"velocity_map", swe.vel_texture)
+	self.material.set_shader_parameter(&"dxdy", swe.dxdy)
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
