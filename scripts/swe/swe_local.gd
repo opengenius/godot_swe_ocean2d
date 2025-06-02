@@ -135,7 +135,14 @@ func _make_linear_sampler_uniform(binding_index: int, texture_rd: RID) -> RDUnif
 	uniform.add_id(linear_sampler)
 	uniform.add_id(texture_rd)
 	return uniform
-	
+
+func _make_ub_uniform(binding_index: int, ub_rd: RID) -> RDUniform:
+	var uniform := RDUniform.new()
+	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER
+	uniform.binding = binding_index
+	uniform.add_id(ub_rd)
+	return uniform
+
 func _initialize_compute_code(init_with_texture_size):
 	# As this becomes part of our normal frame rendering,
 	# we use our main rendering device here.
@@ -214,6 +221,16 @@ func _initialize_compute_code(init_with_texture_size):
 	tf.format = RenderingDevice.DATA_FORMAT_R32_SFLOAT
 	texture_foam_rd = rd.texture_create(tf, RDTextureView.new(), [])
 	rd.texture_clear(texture_foam_rd, Color(0, 0, 0, 0), 0, 1, 0, 1)
+	
+	var wave_params : PackedFloat32Array = PackedFloat32Array()
+	push_vec(wave_params, Vector4(0.011, 2.83, 2.7, 0.942))
+	push_vec(wave_params, Vector4(0.01, 3.032, 2.6, 0.954))
+	push_vec(wave_params, Vector4(0.007, 3.266, 2.5, 0.967))
+	# dirs
+	push_vec(wave_params, Vector4(0.707, 0.707, 0.0, 0.0))
+	push_vec(wave_params, Vector4(0.928, 0.371, 0.0, 0.0))
+	push_vec(wave_params, Vector4(0.819, 0.573, 0.0, 0.0))
+	var wave_params_ub := rd.uniform_buffer_create(wave_params.size() * 4, wave_params.to_byte_array())
 
 	sim_us = rd.uniform_set_create(
 		[_make_image_uniform(0, height_map_rd),
@@ -221,7 +238,8 @@ func _initialize_compute_code(init_with_texture_size):
 		_make_linear_sampler_uniform(2, texture_height_rd),
 		_make_image_uniform(3, tmp_r_map_rd),
 		_make_image_uniform(4, tmp_rg_map_rd),
-		_make_image_uniform(5, texture_foam_rd)],
+		_make_image_uniform(5, texture_foam_rd),
+		_make_ub_uniform(6, wave_params_ub)],
 		shader, 0)
 
 

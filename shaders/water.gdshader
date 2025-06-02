@@ -99,7 +99,8 @@ vec4 waveNormal_h(vec2 pos, float time, float map_h) {
 	return vec4(n, normal_h.z); // opt out: normalize(n)
 }
 
-vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, float height, vec2 sim_hd) {
+vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, float height, 
+			float sim_h, vec2 sim_hd) {
 	//return vec4(fract(map_pos), 0, 1);
 
 	const lowp vec4 deep_water_color   = vec4(0.1, 0.15, 0.25, 1.0);
@@ -114,7 +115,7 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	wave_n_h = waveNormal_h(map_pos, timeScaled, height);
 #endif
 
-	float water_height = heigth_ground + wave_n_h.w;
+	float water_height = max(heigth_ground + wave_n_h.w, sim_h);
 	float full_height = water_height - height;
 	//return vec4(1.0 - height, 0, 0, 1);
 	//return vec4(full_height, 0, 0, 1);
@@ -178,7 +179,7 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	const lowp float shininess = 256.0;
 	lowp vec3 halfwayDir = normalize(lightDir - view_dir);
 	lowp float spec = pow(max(dot(wave_n, halfwayDir), 0.0), shininess);
-	
+
 	lowp vec3 diff = max(dot(wave_n, lightDir), 0.0) * lightColor;
 
 	lowp vec3 specular = specularStrength * spec * lightColor;
@@ -224,7 +225,7 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 #endif
 
 	const lowp float fogDensity = 4.0;
-    lowp float deep_water_factor = clamp(1.0 - exp(-(heigth_ground - height) * fogDensity), 0.0, 1.0);
+	lowp float deep_water_factor = clamp(1.0 - exp(-(full_height) * fogDensity), 0.0, 1.0);
 	//return vec4(vec3_splat(deep_water_factor), 1);
 	lowp vec4 water_color = mix(shalow_water_color, deep_water_color, deep_water_factor);
 	//return water_color;
@@ -268,7 +269,7 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 
 	//water_color.xyz += vec3(foam * foam_factor);
 	water_color.rgb = mix(water_color.rgb, diff, foam_factor * foam);
-	
+
 	water_color = (water_color + vec4(specular, 0.0));
 
 	return water_color;
@@ -308,12 +309,12 @@ void fragment() {
 
 		float h = color.r * 2.0;
 
-		float sim_h = texture(sim_height_map, local_uv).r + color.r;
+		float sim_h = texture(sim_height_map, local_uv).r * 2.0 + h;
 		const float grid_step = 1.084 * 0.5;
 		vec2 sim_hd = vec2(-dFdx(sim_h), -dFdy(sim_h)) * 1.0 / (grid_step * current_pos2d_scale.z);
 		//sim_hd = vec2(0.0);
 
-        COLOR = CalcColor(v_pos, colorGround, foam_mask, velocity, h, sim_hd);
+        COLOR = CalcColor(v_pos, colorGround, foam_mask, velocity, h, sim_h, sim_hd);
     }
 }
 

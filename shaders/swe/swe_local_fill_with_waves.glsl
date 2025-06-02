@@ -2,13 +2,7 @@
 #version 450
 
 #include "image_utils.glslinc"
-
-layout(r32f, set = 0, binding = 0) uniform restrict image2D dyn_height_image;
-layout(rg32f, set = 0, binding = 1) uniform restrict image2D velocity_image;
-layout(set = 0, binding = 2) uniform sampler2D height_map;
-layout(r32f, set = 0, binding = 3) uniform restrict image2D tmp_r_image;
-layout(rg32f, set = 0, binding = 4) uniform restrict image2D tmp_rg_map;
-layout(r32f, set = 0, binding = 5) uniform restrict image2D foam_map;
+#include "sim_params.gdshaderinc"
 
 // Invocations in the (x, y, z) dimension.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -21,19 +15,6 @@ layout(push_constant, std430) uniform Params {
 	vec4 pos2d_scale; // global, current
 } params;
 
-const int numWaves = 3;
-
-const vec4 wave_ampl_freq_steepness_phase[numWaves] = vec4[](
-	vec4(0.011, 2.83, 2.7, 0.942),
-	vec4(0.01, 3.032, 2.6, 0.954),
-	vec4(0.007, 3.266, 2.5, 0.967)
-);
-const vec2 wave_direction[numWaves] = vec2[](
-	vec2(0.707, 0.707),
-	vec2(0.928, 0.371),
-	vec2(0.819, 0.573)
-);
-	
 float globalTime() 
 {
     return params.time;
@@ -148,9 +129,10 @@ void main() {
 		//normal_h.z = 1. / (50.0 + normal_h.z * 30.0f);
 		// normal_h.z = 1. / (1.0 + exp((0.3+normal_h.z) * 20.0f));
 		// normal_h.z *= 1. / (1.0 + exp((0.03 + normal_h.z) * 90.0f));
-		// normal_h.z *= 1. / (1.0 + exp((0.01 + normal_h.z) * 5.0f));
-		// normal_h = normalize(normal_h);
-		normal_h.xy = normalize(normal_h.xy * 1.0 + exp((0.02 + normal_h.z) * 400.0f));
+		// normal_h.xy += waveSpeed();
+		normal_h.z *= 1. / (1.0 + exp((0.01 + normal_h.z) * 5.0f));
+		normal_h = normalize(normal_h);
+		// normal_h.xy = normalize(normal_h.xy * 1.0 + exp((0.02 + normal_h.z) * 400.0f));
 
 		// Interpolate
 		h_ij = max(0.0, mix(height_prev_clamped + h_nearest, height + h_ij, fade) - height);

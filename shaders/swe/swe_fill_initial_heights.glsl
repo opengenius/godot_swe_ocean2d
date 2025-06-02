@@ -1,15 +1,10 @@
 #[compute]
 #version 450
 
+#include "sim_params.gdshaderinc"
+
 // Invocations in the (x, y, z) dimension.
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-
-layout(r32f, set = 0, binding = 0) uniform restrict image2D dyn_height_image;
-layout(rg32f, set = 0, binding = 1) uniform restrict image2D velocity_image;
-layout(set = 0, binding = 2) uniform sampler2D height_map;
-layout(r32f, set = 0, binding = 3) uniform restrict image2D tmp_r_image;
-layout(rg32f, set = 0, binding = 4) uniform restrict image2D tmp_rg_map;
-layout(r32f, set = 0, binding = 5) uniform restrict image2D foam_map;
 
 layout(push_constant, std430) uniform Params {
 	vec2 texture_size;
