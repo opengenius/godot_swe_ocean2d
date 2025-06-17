@@ -24,9 +24,9 @@ const float drag_factor = 0.05f;
 const ivec2 tl = ivec2(0, 0);
 const float max_dt = 0.033f; // 30 fps
 
-vec2 global_uv(ivec2 xy) {
+vec2 local_uv(ivec2 xy) {
     vec2 uv = (vec2(xy) + 0.5) / params.texture_size;
-    return uv * params.pos2d_scale.z + params.pos2d_scale.xy;
+    return uv;
 }
 
 vec2 cubic_inverse(vec2 in_t) {
@@ -51,9 +51,9 @@ void main() {
     float h_i1j = imageLoad(tmp_r_image, clamp(xy + ivec2(1, 0), tl, coord_max)).r;
     float h_ij1 = imageLoad(tmp_r_image, clamp(xy + ivec2(0, 1), tl, coord_max)).r;
 
-    float H_ij = texture(height_map, global_uv(xy)).r;
-    float H_i1j = texture(height_map, global_uv(clamp(xy + ivec2(1, 0), tl, coord_max))).r;
-    float H_ij1 = texture(height_map, global_uv(clamp(xy + ivec2(0, 1), tl, coord_max))).r;
+    float H_ij = texture(height_map, local_uv(xy)).r;
+    float H_i1j = texture(height_map, local_uv(clamp(xy + ivec2(1, 0), tl, coord_max))).r;
+    float H_ij1 = texture(height_map, local_uv(clamp(xy + ivec2(0, 1), tl, coord_max))).r;
 
     float n_ij = h_ij + H_ij;
     float n_i1j = h_i1j + H_i1j;
@@ -102,7 +102,7 @@ void main() {
         v_uv.y = max(-max_vel, min(new_v, max_vel));
     }
 
-    v_uv *= damping;
+    v_uv *= min(damping.x, damping.y); // apply damping
 
     imageStore(velocity_image, xy, vec4(v_uv, 0.0, 0.0));
 }

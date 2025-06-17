@@ -5,8 +5,6 @@ extends Sprite2D
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	pass
-	#self.texture = swe.texture
 	self.material.set_shader_parameter(&"current_pos2d_scale", Vector4(0.0, 0.0, 1.0, 0.0))
 	self.material.set_shader_parameter(&"sim_height_map", swe.texture)
 	self.material.set_shader_parameter(&"velocity_map", swe.vel_texture)

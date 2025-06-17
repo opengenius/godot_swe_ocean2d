@@ -6,6 +6,7 @@ const grid_step_base = 2.17 * 0.5
 
 @export var texture_size : Vector2i = Vector2i(256, 256)
 @export var map_height_texture : Texture2D
+@export var dyn_height_vp: SubViewport
 @export var camera: Camera2D
 @export var visualNode: Sprite2D
 
@@ -16,8 +17,15 @@ var foam_texture := Texture2DRD.new()
 
 var grid_dxdy := grid_step_base
 var current_camera_rel_pos := Vector2.ZERO
-var current_lin_scale:int = 1
+var current_lin_scale: int = 1
 
+class ImpulseData:
+	var pos: Vector2
+	var dir: Vector2
+	var radius: float
+	var strength: float
+	
+var impulse: ImpulseData
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -29,9 +37,12 @@ func _exit_tree():
 	texture.texture_rd_rid = RID()
 	vel_texture.texture_rd_rid = RID()
 	RenderingServer.call_on_render_thread(_free_compute_resources)
+	
+func add_impulse(d: ImpulseData):
+	impulse = d
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
+func _process(delta):	
 	const global_water_size := 2048 * 0.903 # @Water texture width * scale
 	#const sim_step_base := 0.125 # 1/8 of simulation width
 	const sim_step_base := 0.0625 # 1/16
@@ -43,6 +54,9 @@ func _process(delta):
 	var sim_scale = global_vp_size.x / global_water_size * step_padding_scale
 	
 	sim_scale = max(sim_scale, 0.125)
+	
+	var prev_camera_rel_pos := current_camera_rel_pos
+	var prev_sim_scale := 1.0 / (2 ** current_lin_scale)
 	
 	var camera_rel_pos := Vector2.ZERO
 	var snap := false
@@ -74,15 +88,25 @@ func _process(delta):
 		visualNode.transform.origin = current_camera_rel_pos * global_water_size
 		var node_scale = sim_scale * global_water_size / visualNode.get_rect().size.x
 		visualNode.scale = Vector2(node_scale, node_scale)
+	
+	var dyn_height_vp_camera: Camera2D = null 
+	if dyn_height_vp != null:
+		dyn_height_vp_camera = dyn_height_vp.get_camera_2d()
+	
+	if dyn_height_vp_camera != null:
+		dyn_height_vp_camera.transform.origin = current_camera_rel_pos * Vector2(dyn_height_vp.size)
+		dyn_height_vp_camera.zoom = Vector2(1.0 / sim_scale, 1.0 / sim_scale)
 		
 	grid_dxdy = grid_step_base * sim_scale
 	texture.texture_rd_rid = height_map_rd
 	vel_texture.texture_rd_rid = texture_velocity_rd
 	foam_texture.texture_rd_rid = texture_foam_rd
-		
+	
 	RenderingServer.call_on_render_thread(_render_process.bind(
 			texture_size, delta,
-			current_camera_rel_pos, sim_scale))
+			current_camera_rel_pos, sim_scale, impulse))
+			
+	impulse = null
 
 
 ###############################################################################
@@ -105,8 +129,6 @@ var tmp_rg_map_rd : RID
 # foam
 var texture_foam_rd: RID
 
-var texture_height_rd: RID
-
 var fill_shader : RID
 var fill_pipeline : RID
 var vel_advect_shader: RID
@@ -118,6 +140,8 @@ var foam_shader : RID
 var foam_pipeline : RID
 var foam_adv_shader : RID
 var foam_adv_pipeline : RID
+var impulse_shader: RID
+var impulse_pipeline: RID
 
 var sim_us : RID
 
@@ -154,19 +178,23 @@ func _initialize_compute_code(init_with_texture_size):
 	linear_sampler = rd.sampler_create(ss)
 	
 	# fill shader
-	var fill_shader_file = load("res://shaders/swe/swe_local_fill_with_waves.glsl")
+	var fill_shader_file := load("res://shaders/swe/swe_local_fill_with_waves.glsl")
 	fill_shader = rd.shader_create_from_spirv(fill_shader_file.get_spirv())
 	fill_pipeline = rd.compute_pipeline_create(fill_shader)
 	
 	# Velocities shader
-	var vel_shader_file = load("res://shaders/swe/swe_update_velocities.glsl")
+	var vel_shader_file := load("res://shaders/swe/swe_update_velocities.glsl")
 	vel_shader = rd.shader_create_from_spirv(vel_shader_file.get_spirv())
 	vel_pipeline = rd.compute_pipeline_create(vel_shader)
+	
+	# Impulse shader
+	var impulse_shader_file := load("res://shaders/swe/circle_impulse.glsl")
+	impulse_shader = rd.shader_create_from_spirv(impulse_shader_file.get_spirv())
+	impulse_pipeline = rd.compute_pipeline_create(impulse_shader)
 
 	# Height shader
-	var shader_file = load("res://shaders/swe/swe_update.glsl")
-	var shader_spirv: RDShaderSPIRV = shader_file.get_spirv()
-	shader = rd.shader_create_from_spirv(shader_spirv)
+	var shader_file := load("res://shaders/swe/swe_update.glsl")
+	shader = rd.shader_create_from_spirv(shader_file.get_spirv())
 	pipeline = rd.compute_pipeline_create(shader)
 	
 	# Foam shader
@@ -179,18 +207,7 @@ func _initialize_compute_code(init_with_texture_size):
 	#
 	# Create textures
 	#
-	var image := map_height_texture.get_image()
-	image.convert(Image.FORMAT_R8)
-	
-	var fmt = RDTextureFormat.new()
-	fmt.width = image.get_width()
-	fmt.height = image.get_height()
-	fmt.mipmaps = image.get_mipmap_count() + 1
-	fmt.format = RenderingDevice.DATA_FORMAT_R8_UNORM
-	fmt.usage_bits = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT
-	if Engine.is_editor_hint():
-		fmt.usage_bits += RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
-	texture_height_rd = rd.texture_create(fmt, RDTextureView.new(), [image.get_data()])
+	var texture_height_rd := RenderingServer.texture_get_rd_texture(map_height_texture.get_rid())
 	
 	var tf : RDTextureFormat = RDTextureFormat.new()
 	tf.format = RenderingDevice.DATA_FORMAT_R32_SFLOAT
@@ -232,10 +249,15 @@ func _initialize_compute_code(init_with_texture_size):
 	push_vec(wave_params, Vector4(0.819, 0.573, 0.0, 0.0))
 	var wave_params_ub := rd.uniform_buffer_create(wave_params.size() * 4, wave_params.to_byte_array())
 
+	#dyn_height_vp.texture
+	var dyn_height_vp_tex := dyn_height_vp.get_texture()
+	var dyn_height_vp_rd_tex := RenderingServer.texture_get_rd_texture(dyn_height_vp_tex.get_rid())
+	
 	sim_us = rd.uniform_set_create(
 		[_make_image_uniform(0, height_map_rd),
 		_make_image_uniform(1, texture_velocity_rd), 
-		_make_linear_sampler_uniform(2, texture_height_rd),
+		_make_linear_sampler_uniform(2, dyn_height_vp_rd_tex),
+		#_make_linear_sampler_uniform(2, texture_height_rd),
 		_make_image_uniform(3, tmp_r_map_rd),
 		_make_image_uniform(4, tmp_rg_map_rd),
 		_make_image_uniform(5, texture_foam_rd),
@@ -249,16 +271,20 @@ func _free_compute_resources():
 	
 	if texture_velocity_rd:
 		rd.free_rid(texture_velocity_rd)
-
+	# todo: pipeline, uniform sets?
+	
+	if foam_adv_shader:
+		rd.free_rid(foam_adv_shader)
+	if foam_shader:
+		rd.free_rid(foam_shader)
 	if shader:
 		rd.free_rid(shader)
+	if impulse_shader:
+		rd.free_rid(impulse_shader)
 	if vel_shader:
 		rd.free_rid(vel_shader)
-	if vel_advect_shader:
-		rd.free_rid(vel_advect_shader)
 	if fill_shader:
 		rd.free_rid(fill_shader)
-	# todo: pipeline, uniform sets?
 
 var rtime = 0.0
 var r_cam_pos := Vector2(100, 100)
@@ -271,14 +297,17 @@ func push_vec(arr : PackedFloat32Array, v: Vector4):
 	arr.push_back(v.w)
 
 func _render_process(tex_size: Vector2i, delta: float, 
-		camera_pos: Vector2, camera_zoom: float):
+		camera_pos: Vector2, camera_zoom: float, impulse: ImpulseData):
+			
+	await RenderingServer.frame_post_draw
+			
 	rtime += delta
 	
 	var dxdy := grid_step_base * camera_zoom
 	
 	var camera_dscale := camera_zoom / r_cam_scale
 	var camera_dpos := (camera_pos - r_cam_pos) / camera_zoom * camera_dscale
-
+	
 	var prev_pos2d_scale := Vector4(camera_dpos.x, camera_dpos.y, camera_dscale, 0)
 	var pos2d_scale := Vector4(camera_pos.x, camera_pos.y, camera_zoom, 0)
 	
@@ -287,7 +316,7 @@ func _render_process(tex_size: Vector2i, delta: float,
 	
 	# We don't have structures (yet) so we need to build our push constant
 	# "the hard way"...
-	var push_constant : PackedFloat32Array = PackedFloat32Array()
+	var push_constant := PackedFloat32Array()
 	push_constant.push_back(tex_size.x)
 	push_constant.push_back(tex_size.y)
 	push_constant.push_back(dxdy)
@@ -303,12 +332,12 @@ func _render_process(tex_size: Vector2i, delta: float,
 	var x_groups = (tex_size.x - 1) / 8 + 1
 	var y_groups = (tex_size.y - 1) / 8 + 1
 	
-	#rd.capture_timestamp("SWE")
+	#rd.capture_timestamp("SWE_local_sta")
 	
 	var compute_list := rd.compute_list_begin()
 	
 	# fill heights
-	var fill_constants : PackedFloat32Array = PackedFloat32Array()
+	var fill_constants := PackedFloat32Array()
 	fill_constants.push_back(tex_size.x)
 	fill_constants.push_back(tex_size.y)
 	fill_constants.push_back(dxdy)
@@ -326,6 +355,25 @@ func _render_process(tex_size: Vector2i, delta: float,
 	rd.compute_list_bind_uniform_set(compute_list, sim_us, 0)
 	rd.compute_list_set_push_constant(compute_list, push_constant.to_byte_array(), push_constant.size() * 4)
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
+	
+	if impulse != null:
+		# normalized position relative to texture size
+		var rel_pos: Vector2 = (impulse.pos / tex_size.x - camera_pos) / camera_zoom;
+		var imp_params := PackedFloat32Array()
+		imp_params.push_back(tex_size.x)
+		imp_params.push_back(tex_size.y)
+		imp_params.push_back(rel_pos.x)
+		imp_params.push_back(rel_pos.y)
+		imp_params.push_back(impulse.dir.x * impulse.strength)
+		imp_params.push_back(impulse.dir.y * impulse.strength)
+		imp_params.push_back(impulse.radius / camera_zoom) # todo: normalize to texture size
+		imp_params.push_back(0.0) # padding
+		
+		rd.compute_list_bind_compute_pipeline(compute_list, impulse_pipeline)
+		rd.compute_list_bind_uniform_set(compute_list, sim_us, 0)
+		rd.compute_list_set_push_constant(compute_list, imp_params.to_byte_array(), imp_params.size() * 4)
+		rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
+		
 	
 	# update heights
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
@@ -346,3 +394,5 @@ func _render_process(tex_size: Vector2i, delta: float,
 	rd.compute_list_dispatch(compute_list, x_groups, y_groups, 1)
 	
 	rd.compute_list_end()
+	
+	#rd.capture_timestamp("SWE_local_end")

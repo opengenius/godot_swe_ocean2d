@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://b5oebrriakue4"
+path="res://.godot/imported/circle_impulse.glsl-71c51cd3be4ddbdcce55dffb252319bc.res"
+
+[deps]
+
+source_file="res://shaders/swe/circle_impulse.glsl"
+dest_files=["res://.godot/imported/circle_impulse.glsl-71c51cd3be4ddbdcce55dffb252319bc.res"]
+
+[params]
+

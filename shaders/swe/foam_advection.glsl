@@ -2,6 +2,9 @@
 #version 450
 
 #include "sim_params.gdshaderinc"
+#include "image_utils.glslinc"
+
+DEFINE_BILINEAR_INTERPOLATION(bilinear_tmp_r_image, tmp_r_image)
 
 // Thread group size
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -22,8 +25,8 @@ vec2 sampleVelocity(ivec2 xy) {
 }
 
 float advectFoam(ivec2 xy, vec2 velocity) {
-    ivec2 coordBack = ivec2(vec2(xy) + vec2(0.5) - velocity * params.dt / params.dxdy); // todo: velocity factor
-    return imageLoad(tmp_r_image, coordBack).r;
+    vec2 coordBack = vec2(xy) - velocity * params.dt / params.dxdy; // todo: velocity factor
+    return bilinear_tmp_r_image(coordBack, ivec2(params.texture_size)).r;
 }
 
 void main() {

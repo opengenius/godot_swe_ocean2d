@@ -68,8 +68,6 @@ var tmp_rg_map_rd : RID
 # foam
 var texture_foam_rd: RID
 
-var texture_height_rd: RID
-
 var sim_us : RID
 
 var init_heights = true
@@ -142,19 +140,6 @@ func _initialize_compute_code(init_with_texture_size):
 	#
 	# Create textures
 	#
-	var image := map_height_texture.get_image()
-	image.convert(Image.FORMAT_R8)
-	
-	var fmt = RDTextureFormat.new()
-	fmt.width = image.get_width()
-	fmt.height = image.get_height()
-	fmt.mipmaps = image.get_mipmap_count() + 1
-	fmt.format = RenderingDevice.DATA_FORMAT_R8_UNORM
-	fmt.usage_bits = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT
-	if Engine.is_editor_hint():
-		fmt.usage_bits += RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
-	texture_height_rd = rd.texture_create(fmt, RDTextureView.new(), [image.get_data()])
-	
 	var tf : RDTextureFormat = RDTextureFormat.new()
 	tf.format = RenderingDevice.DATA_FORMAT_R32_SFLOAT
 	tf.texture_type = RenderingDevice.TEXTURE_TYPE_2D
@@ -195,6 +180,8 @@ func _initialize_compute_code(init_with_texture_size):
 	push_vec(wave_params, Vector4(0.928, 0.371, 0.0, 0.0))
 	push_vec(wave_params, Vector4(0.819, 0.573, 0.0, 0.0))
 	var wave_params_ub := rd.uniform_buffer_create(wave_params.size() * 4, wave_params.to_byte_array())
+	
+	var texture_height_rd := RenderingServer.texture_get_rd_texture(map_height_texture.get_rid())
 	
 	sim_us = rd.uniform_set_create(
 		[_make_image_uniform(0, dyn_height_rd),
