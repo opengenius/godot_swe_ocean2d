@@ -28,7 +28,8 @@ void main() {
     vec2 pos = vec2(xy);
 
     vec2 center = params.impulse_center * vec2(params.texture_size);
-    float dist = distance(pos, center);
+    vec2 dif = pos - center;
+    float dist = length(dif);
 
     float impulse_radius = params.impulse_radius;
 
@@ -46,5 +47,10 @@ void main() {
                         vec2(max_vel, max_vel));
         
         imageStore(velocity_image, xy, vec4(v_uv, 0.0, 0.0));
+        
+        float h_f = 1.0 * dot(params.impulse_dir, normalize(dif));
+        float h_ij = imageLoad(tmp_r_image, xy).r;
+        h_ij = max(0.0, h_ij + (1.0 - falloff) * h_f);
+        imageStore(tmp_r_image, xy, vec4(h_ij, 0.0, 0.0, 0.0));
     }
 }

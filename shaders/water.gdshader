@@ -99,7 +99,7 @@ vec4 waveNormal_h(vec2 pos, float time, float map_h) {
 	return vec4(n, normal_h.z); // opt out: normalize(n)
 }
 
-vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, float height, 
+vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, float height,
 			float sim_h, vec2 sim_hd) {
 	//return vec4(fract(map_pos), 0, 1);
 
@@ -115,7 +115,7 @@ vec4 CalcColor(vec2 map_pos, vec4 colorGround, float foam_mask, vec2 velocity, f
 	wave_n_h = waveNormal_h(map_pos, timeScaled, height);
 #endif
 
-	float water_height = max(heigth_ground + wave_n_h.w, sim_h);
+	float water_height = sim_h;//max(heigth_ground + wave_n_h.w, sim_h);
 	float full_height = water_height - height;
 	//return vec4(1.0 - height, 0, 0, 1);
 	//return vec4(full_height, 0, 0, 1);

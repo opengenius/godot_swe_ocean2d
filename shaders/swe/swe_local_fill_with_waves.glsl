@@ -56,6 +56,7 @@ vec3 waveNormal_h(vec2 pos, float time) {
     for (int i = 0; i < numWaves; ++i) {
 		normal_h += wave_normal(i, pos, time);
     }
+	normal_h.x *= -1.0f;
 	return normal_h;
 }
 
@@ -67,13 +68,12 @@ DEFINE_BILINEAR_INTERPOLATION(bilinear_previous, dyn_height_image)
 |0|0.25|0.75|1| linear
 */
 
-DEFINE_BILINEAR_INTERPOLATION(bilinearVelocity, velocity_image)
+DEFINE_BILINEAR_INTERPOLATION(bilinear_velocity, velocity_image)
 
 void main() {
 	const ivec2 tl = ivec2(0, 0);
 
 	ivec2 size = ivec2(params.texture_size);
-	ivec2 coord_max = size - ivec2(1);
 
 	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 
@@ -88,61 +88,59 @@ void main() {
 
     // Calculate UV coordinates in the previous image space
     vec2 uv_previous = uv * params.prev_pos2d_scale.z + params.prev_pos2d_scale.xy;
-	ivec2 xy_prev = ivec2(uv_previous * params.texture_size);
 
+	float height = texture(height_map, uv).r;
+	// make uv global
 	uv = uv * params.pos2d_scale.z + params.pos2d_scale.xy;
-    float height = texture(height_map, uv).r;
 
 	const float water_base_level = 0.45;
 	const float dapmening_width = 32.0;
+	const float oor_speed_scale = 0.125;
 	// const float EPS = 0.001f;
-	const float oor_speed_scale = 1.0;
+	// const float g = 9.81f;
 
 	float h_ij = 0.0;
 	vec2 v_uv = vec2(0.0);
-	bool prev_out_of_range = xy_prev.x < 0 || xy_prev.y < 0 || xy_prev.x >= size.x || xy_prev.y >= size.y;
+	bool prev_out_of_range = uv_previous.x < 0 || uv_previous.y < 0 || uv_previous.x > 1.0 || uv_previous.y > 1.0;
 	if (prev_out_of_range) {
 		// h_ij = max(0.0, water_base_level - height);
 		
-		ivec2 xy_prev_clamped = clamp(xy_prev, tl, coord_max);
+		vec2 uv_prev_clamped = clamp(uv_previous, vec2(0.0), vec2(1.0));
+		ivec2 xy_prev_clamped = ivec2(uv_prev_clamped * params.texture_size - 0.5);
 		float h_nearest = imageLoad(dyn_height_image, xy_prev_clamped).r;
 
-		vec2 uv_prev_clamped = (vec2(xy_prev_clamped) + 0.5) / params.texture_size;
 		vec2 uv_prev_clamped_local = (uv_prev_clamped - params.prev_pos2d_scale.xy) / params.prev_pos2d_scale.z;
-		vec2 uv_prev_clamped_global = uv_prev_clamped_local * params.pos2d_scale.z + params.pos2d_scale.xy;
-    	float height_prev_clamped = min(texture(height_map, uv_prev_clamped_global).r, water_base_level);
+		float height_prev_clamped = texture(height_map, uv_prev_clamped_local).r;
 
 		vec2 pos = uv * 74.0 * vec2(1.0, -1.0);
         vec3 normal_h = waveNormal_h(pos, globalTime());
 		float analitical_h = normal_h.z * 0.5;
 
-		h_ij = max(0.0, (water_base_level + analitical_h) - height);
-
 		// Distance from valid range, in pixels
-		vec2 dist = vec2(0.0);
-		dist.x = float(xy_prev.x < 0 ? -xy_prev.x : max(0, xy_prev.x - (size.x - 1)));
-		dist.y = float(xy_prev.y < 0 ? -xy_prev.y : max(0, xy_prev.y - (size.y - 1)));
+		vec2 dist = abs(uv_prev_clamped - uv_previous) * params.texture_size;
 
 		// Normalize and clamp fade based on max 2-3 pixels out
 		float fade = clamp(max(dist.x, dist.y) / dapmening_width, 0.0, 1.0);
 
-		//normal_h.z = 1. / (50.0 + normal_h.z * 30.0f);
-		// normal_h.z = 1. / (1.0 + exp((0.3+normal_h.z) * 20.0f));
-		// normal_h.z *= 1. / (1.0 + exp((0.03 + normal_h.z) * 90.0f));
-		// normal_h.xy += waveSpeed();
-		normal_h.z *= 1. / (1.0 + exp((0.01 + normal_h.z) * 5.0f));
-		normal_h = normalize(normal_h);
-		// normal_h.xy = normalize(normal_h.xy * 1.0 + exp((0.02 + normal_h.z) * 400.0f));
+		// make it more steep
+		analitical_h *= 2.0;
+
+		h_ij = max(0.0, (water_base_level + analitical_h) - height);		
 
 		// Interpolate
-		h_ij = max(0.0, mix(height_prev_clamped + h_nearest, height + h_ij, fade) - height);
+		float abs_h_nearest = h_nearest > 0.001 ? height_prev_clamped + h_nearest : water_base_level;
+		float abs_h_ij = h_ij > 0.001 ? height + h_ij : water_base_level;
+		h_ij = max(0.0, mix(abs_h_nearest, abs_h_ij, fade) - height);
+
+		// todo: generate velocities to make waves move
 		float h_f = min(1.0, height * 2.0);
-		v_uv = -normal_h.xy * oor_speed_scale * fade * h_f * h_f;
+		normal_h.z *= 1. / (1.0 + exp((0.01 + normal_h.z) * 5.0f));
+		normal_h = normalize(normal_h);
+		v_uv = -normal_h.xy * oor_speed_scale * fade * h_f * h_f * h_f;
 
 	} else {
 		h_ij = bilinear_previous(uv_previous * size - 0.5, size).r;
-		// h_ij = imageLoad(previous_image, xy_prev).r;
-		v_uv = bilinearVelocity(uv_previous * params.texture_size - 0.5, size).rg;
+		v_uv = bilinear_velocity(uv_previous * params.texture_size - 0.5, size).rg;
 	}
 
 	imageStore(tmp_rg_map, xy, vec4(v_uv, 0.0, 0.0));

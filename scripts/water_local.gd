@@ -9,7 +9,7 @@ const DRAW_LINES = false
 const GRID_SIZE = 74
 
 var movingObjPrevPos := Vector2()
-const objRadius = 4.0
+const objRadius = 1.0
 
 
 # Called when the node enters the scene tree for the first time.
