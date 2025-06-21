@@ -8,7 +8,7 @@ https://matthias-research.github.io/pages/publications/hfFluid.pdf)
 
 https://github.com/user-attachments/assets/fd18a2d6-e244-426e-8852-0d648e2dfedb
 
-https://github.com/user-attachments/assets/02667fc5-16e9-466e-b775-1b85825d9d13
+https://github.com/user-attachments/assets/2811987a-ddcb-4920-8e55-7eed07bf9f69
 
 
 ## Getting Started
